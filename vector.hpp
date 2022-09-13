@@ -8,11 +8,13 @@
 
 //#include <vector>
 
+#include "./iterator/cmp.hpp"
 #include "./iterator/enable_if.hpp"
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include "./iterator/random_access_iterator.hpp"
+#include "./iterator/bidirectional_iterator.hpp"
 
 namespace ft
 {
@@ -297,13 +299,19 @@ iterator erase( iterator first, iterator last ); // Removes the elements in the 
 
 // push_back()   -   adds an element to the end
 void push_back( const T& value )
-{   if (size() > capacity())
+{   
+    if (this->size() == 0)
+        reserve(1);
+    else if (this->_end == this->_end_capacity)
         reserve(capacity() * 2);
-    *_end++ = value;
+    this->_alloc.construct(_end++, value);
 }
 
 // pop_back()   -   removes the last element
-void pop_back();
+void pop_back()
+{
+    _alloc.destroy(--_end);
+}
 
 // resize() -   changes the number of elements stored
 void resize( size_type count )
@@ -338,133 +346,57 @@ void resize( size_type count, T value)
 
 
 // swap()   -   Exchanges the contents of the container with those of other. Does not invoke any move, copy, or swap operations on individual elements.
-void swap( vector& other );
+void swap( vector& other )
+{
+    pointer         begin_s = this->_begin;
+    pointer         end_s = this->_end;
+    pointer         end_capacity_s = this->_end_capacity;
+    allocator_type  alloc_s = this->_alloc;
+    this->_alloc = other._alloc;
+    this->_end = other._end;
+    this->_begin = other._begin;
+    this->_end_capacity = other._end_capacity;
+    other._alloc = alloc_s;
+    other._end = end_s;
+    other._begin = begin_s;
+    other._end_capacity = end_capacity_s;
+}
 
 };
 
 /*  No mumber ft (operator overload) */
 
-/*
 template <typename T>
-bool    operator==(ft::vector<T> &src)
+bool    operator==(const ft::vector<T>& x, const ft::vector<T>& y)
 {
-    if (size() != src.size())
+    if (x.size() != y.size())
         return false;
-    for (iterator i = begin(); i != end(); i++)
-        if (* != src.m_Data[i])
-            return false;
+    typename ft::vector<T>::const_iterator it1 = x.begin();
+    typename ft::vector<T>::const_iterator it2 = y.begin();
+    for (size_t i = x.size(); i < x.size(); i++)
+        if (*(it1 + i) != *(it2 + i))
+                return false;
     return true;
-}
+}   
 
-bool    operator==(const vector &src)
-{
-    if (m_Size != src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] != src.m_Data[i])
-            return false;
-    return true;
-}
+template <typename T>
+bool    operator!=(const ft::vector<T>& x, const ft::vector<T>& y)
+{   return !(x == y);    }
 
-bool    operator!=(vector &src)
-{
-    if (m_Size != src.m_Size)
-        return true;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] != src.m_Data[i])
-            return true;
-    return false;
-}
+template <typename T>
+bool operator<(const ft::vector<T>& x, const ft::vector<T>& y)
+{   return ft::lexicographical_compare(x.begin(), x.end(), y.begin(), y.end()); }
 
-bool    operator!=(const vector &src)
-{
-    if (m_Size != src.m_Size)
-        return true;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] != src.m_Data[i])
-            return true;
-    return false;
-}
+template <typename T>
+bool operator>(const ft::vector<T>& x, const ft::vector<T>& y)
+{   return y < x;   }
 
-bool    operator>=(const vector &src)
-{
-    if (m_Size < src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] < src.m_Data[i])
-            return false;
-    return true;
-}
+template <typename T>
+bool operator>=(const ft::vector<T>& x, const ft::vector<T>& y)
+{   return !(x < y);    }
 
-bool    operator>=(vector &src)
-{
-    if (m_Size < src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] < src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator>(const vector &src)
-{
-    if (m_Size <= src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] <= src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator>(vector &src)
-{
-    if (m_Size <= src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] <= src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator<(const vector &src)
-{
-    if (m_Size >= src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] >= src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator<(vector &src)
-{
-    if (m_Size >= src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] >= src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator<=(const vector &src)
-{
-    if (m_Size > src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] > src.m_Data[i])
-            return false;
-    return true;
-}
-
-bool    operator<=(vector &src)
-{
-    if (m_Size > src.m_Size)
-        return false;
-    for (size_t i = 0; i < m_Size; i++)
-        if (m_Data[i] > src.m_Data[i])
-            return false;
-    return true;
-}
-*/
+template <typename T>
+bool operator<=(const ft::vector<T>& x, const ft::vector<T>& y)
+{   return !(y < x);    }
 
 }
