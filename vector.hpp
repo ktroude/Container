@@ -8,6 +8,7 @@
 
 //#include <vector>
 
+#include "./iterator/enable_if.hpp"
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -45,11 +46,13 @@ allocator_type  _alloc;
 
     protected:
 
-template< class InputIt >
+template <class InputIt>
 difference_type  distance( InputIt first, InputIt last )
-{   difference_type   n = 0;
+{   InputIt save = first;
+    difference_type   n = 0;
     for (; first != last; first++)
         n++;
+    first = save;
     return n;   }
 
 //pointer allocate(size_type n) 
@@ -69,15 +72,23 @@ explicit vector( size_type count, const T& value = T(), const Allocator& alloc =
         this->_alloc.construct(_end++, value);    // malloc un tableau de taille begin-end, incremente end pour qu il pointe apres le tableau (iterator end() tmtc)
 }
 
+// explicit vector( size_type count, const T& value)
+// {   this->begin = this->_alloc.allocate(count);
+//     this->_end_capacity = this->begin + count;
+//     this->_end = this->_begin;
+//     for (; count > 0; count--)
+//         this->_alloc.construct(_end++, value);
+// }
+
 template< class InputIt >
-vector( InputIt first, InputIt last, const Allocator& alloc = Allocator() ) : _alloc(alloc) 
+vector( InputIt first, InputIt last, const Allocator& alloc = Allocator(), typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL) : _alloc(alloc) 
 {   
-    difference_type dif = ft::distance(first, last);
+    difference_type dif = this->distance(first, last);
     this->_begin = this->_alloc.allocate(dif);
     this->_end_capacity = this->_begin + dif;
     this->_end= this->_begin;
     for (; dif > 0; dif--) 
-        this->_alloc.construct(_end++, *first++); }
+        this->_alloc.construct(_end++, *(first++)); }
 
 vector( const vector& src) : _alloc(src._alloc)
 {
@@ -98,19 +109,20 @@ vector( const vector& src) : _alloc(src._alloc)
 }
 
 vector& operator=( const vector& other )
-{   if (this != &other)
-    {
+{   //if (this != &other)
+    //{
         this->clear();
         this->_alloc.deallocate(this->_begin, this->capacity());
         this->_begin = this->_end= this->_end_capacity = NULL;
-        const_iterator it(other.begin());
-        difference_type dif = other._end_capacity - other._begin;
-        this->_begin = this->_alloc.allocate(dif);
-        _end_capacity = this->_begin + dif;
-        this->_end= this->_begin;
-        for (; dif > 0 ; dif--)
+        const_iterator it = other.begin();
+        size_type s = other.capacity();
+        this->_begin = this->_alloc.allocate(other.capacity());
+        this->_end_capacity = this->_begin + s;
+        this->_end = this->_begin;
+        while (s--)
             this->_alloc.construct(_end++, *it++);
-    }
+
+//    }
     return *this;
 }
 
@@ -134,17 +146,17 @@ void assign( size_type count, const T& value )
 }
 
 template <class InputIt>
-void assign( InputIt first, InputIt last )
+void assign( InputIt first, InputIt last, typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL)
 {
-            size_type n = distance(first, last);
-            if (this->capacity() < n) {
-                this->_begin = this->_alloc.allocate(n);
-                this->_end_capacity = this->_begin + n;
-                this->_end = this->_begin;
-            } else 
-            { this->clear(); }
-            while (n--)
-            this->_alloc.construct(this->_end++, *first++);
+    size_type n = distance(first, last);
+    if (this->capacity() < n) {
+        this->_begin = this->_alloc.allocate(n);
+        this->_end_capacity = this->_begin + n;
+        this->_end = this->_begin;
+    } else 
+    { this->clear(); }
+    while (n--)
+        this->_alloc.construct(this->_end++, *first++);
 }
 
 // get_allocator()  -   returns the associated allocator
@@ -228,7 +240,11 @@ bool empty() const
 
 // size()    -   returns the number of elements
 size_type size() const
-{   return (size_type)(this->_end- this->_begin);  }
+{   size_type n = 0;
+    for (typename vector<const T>::iterator it = this->begin(); it != this->end(); it++)
+        n++;
+    return n;
+}
 
 // max_size()   -   returns the maximum possible number of elements
 size_type max_size() const
@@ -242,11 +258,11 @@ void reserve( size_type new_cap )
     if (new_cap <= size())
         return ;
     pointer b = this->_begin;
-    pointer e = _end;
+    pointer e = this->_end;
     size_type c = this->capacity();
     this->_begin = this->_alloc.allocate(new_cap);
     this->_end= this->_begin;
-    _end_capacity = this->_begin + new_cap;
+    this->_end_capacity = this->_begin + new_cap;
     for (pointer p = b; p != e; p++)
         this->_alloc.construct(_end++, *p);
     while (b != e)
@@ -290,8 +306,36 @@ void push_back( const T& value )
 void pop_back();
 
 // resize() -   changes the number of elements stored
-void resize( size_type count );
-void resize( size_type count, T value = T() );
+void resize( size_type count )
+{   if (count < this->size())
+    {
+        while (this->size() != count)
+            _alloc.destroy(--_end);
+        _end_capacity = _begin + count;
+    }
+    else if (count > this->size())
+    {
+        reserve(count);
+        while (_end != _end_capacity)
+            _alloc.construct(_end++, 0);
+    }
+}
+
+void resize( size_type count, T value)
+{   if (count < this->size())
+    {
+        while (this->size() != count)
+            _alloc.destroy(--_end);
+        _end_capacity = _begin + count;
+    }
+    else if (count > this->size())
+    {
+        reserve(count);
+        while (_end != _end_capacity)
+            _alloc.construct(_end++, value);
+    }
+}
+
 
 // swap()   -   Exchanges the contents of the container with those of other. Does not invoke any move, copy, or swap operations on individual elements.
 void swap( vector& other );
