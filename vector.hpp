@@ -294,8 +294,32 @@ template< class InputIt >
 void insert( iterator pos, InputIt first, InputIt last ); // inserts elements from range [first, last) before pos.
 
 //erase()   -   erases elements
-iterator erase( iterator pos ); // Removes the element at pos.
-iterator erase( iterator first, iterator last ); // Removes the elements in the range [first, last)
+iterator erase( iterator pos ) // Removes the element at pos.
+{
+    difference_type ps = pos - this->begin();
+    pointer p = this->_begin + ps;
+    iterator ret = iterator(p);
+    while (p + 1 != this->_end)
+    {   *p = *(p + 1);
+        p++;    }
+    this->_alloc.destroy(--this->_end);
+    return ret;
+}
+
+iterator erase( iterator first, iterator last ) // Removes the elements in the range [first, last)
+{
+    pointer p = this->_begin + (first - this->begin());
+    iterator r = iterator(p);
+    if (first != last)
+    {
+        while (p + (last - first) != this->_end)
+        {   *p = *(p + (last - first));
+            p++;    }
+        while (last-- != first)
+            this->_alloc.destroy(--this->_end);
+    }
+    return r;
+}
 
 // push_back()   -   adds an element to the end
 void push_back( const T& value )

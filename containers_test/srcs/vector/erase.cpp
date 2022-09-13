@@ -17,7 +17,7 @@ int		main(void)
 	for (unsigned long int i = 0; i < vct.size(); ++i)
 		vct[i] = std::string((vct.size() - i), i + 65);
 	printSize(vct);
-
+	
 	checkErase(vct, vct.erase(vct.begin() + 2));
 
 	checkErase(vct, vct.erase(vct.begin()));
