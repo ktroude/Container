@@ -288,10 +288,95 @@ void clear()
         this->_alloc.destroy(--_end); }
 
 // insert() -   inserts elements
-iterator insert( iterator pos, const T& value ); //  inserts value before pos
-void insert( iterator pos, size_type count, const T& value );   // inserts count copies of the value before pos
+iterator insert( iterator pos, const T& value ) //  inserts value before pos
+{
+    pointer p = this->_begin + (pos - this->begin());
+    pointer ret = p;
+    if (this->_end < this->_end_capacity)
+    {
+        if (p == this->_end)
+            this->_alloc.construct(this->_end++, value);
+        else
+        {
+            this->_alloc.construct(this->_end, *(this->_end - 1));
+            for (pointer tmp = this->_end - 1; tmp != p; tmp--)
+                *tmp = *(tmp - 1);
+            *p = value;
+            ret = p;
+            this->_end++;
+        }
+    }
+    else
+    {
+        allocator_type& a = this->_alloc;               // new _alloc
+        pointer begin = a.allocate(this->size() + 1);   // new _begin
+        pointer end = begin;                            // new _end
+        pointer tmp = this->_begin;                     // pour se balader dans _alloc sans bouger _begin
+        while (tmp != p)
+            a.construct(end++, *tmp++);
+        ret = end;
+        a.construct(end++, value);
+        while (tmp != this->_end && p != this->_end)
+            a.construct(end++, *tmp++);
+        this->clear();
+        this->_alloc.deallocate(this->_begin, this->capacity());
+        this->_begin = begin;
+        this->_end = end;
+        this->_alloc = a;
+        this->_end_capacity = this->_end;
+    }
+    return iterator(ret);
+}
+
+void insert( iterator pos, size_type count, const T& value )   // inserts count copies of the value before pos
+{
+    pointer p = this->_begin + (pos - this->begin());
+    if (count > 0)
+    {
+        allocator_type& a = this->_alloc;
+        pointer begin = a.allocate(this->size() + count);
+        pointer end = begin; 
+        pointer tmp = this->_begin;
+        while (tmp != p && p != this->_begin)
+            a.construct(end++, *tmp++);
+        while (count--)
+            a.construct(end++, value);
+        while (tmp != this->_end)
+            a.construct(end++, *tmp++);
+        this->clear();
+        this->_alloc.deallocate(this->_begin, this->capacity());
+        this->_begin = begin;
+        this->_end = end;
+        this->_alloc = a;
+        this->_end_capacity = this->_end;
+    }
+}
+
+
 template< class InputIt >
-void insert( iterator pos, InputIt first, InputIt last ); // inserts elements from range [first, last) before pos.
+void insert( iterator pos, InputIt first, InputIt last, typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL ) // inserts elements from range [first, last) before pos.
+{
+            pointer p = this->_begin + (pos - this->begin());
+            allocator_type& a = this->_alloc;
+            size_type n = 0;
+            for (InputIt it = first; it != last; it++)
+                n++;
+            pointer begin = a.allocate(this->size() + n);
+            pointer end = begin; 
+            pointer tmp = this->_begin;
+            while (tmp != p && p != this->_begin)
+                a.construct(end++, *tmp++);
+            for (InputIt it = first; it != last; it++)
+                a.construct(end++, *it);
+            while (tmp != this->_end)
+                a.construct(end++, *tmp++);
+            this->clear();
+            this->_alloc.deallocate(this->_begin, this->capacity());
+            this->_begin = begin;
+            this->_end = end;
+            this->_alloc = a;
+            this->_end_capacity = this->_end;
+}
 
 //erase()   -   erases elements
 iterator erase( iterator pos ) // Removes the element at pos.
