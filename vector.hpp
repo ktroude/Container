@@ -57,9 +57,6 @@ difference_type  distance( InputIt first, InputIt last )
     first = save;
     return n;   }
 
-//pointer allocate(size_type n) 
-//{ return _alloc.allocate(n); }
-
     public:
 
 // constructor
@@ -111,8 +108,7 @@ vector( const vector& src) : _alloc(src._alloc)
 }
 
 vector& operator=( const vector& other )
-{   //if (this != &other)
-    //{
+{ 
         this->clear();
         this->_alloc.deallocate(this->_begin, this->capacity());
         this->_begin = this->_end= this->_end_capacity = NULL;
@@ -124,7 +120,6 @@ vector& operator=( const vector& other )
         while (s--)
             this->_alloc.construct(_end++, *it++);
 
-//    }
     return *this;
 }
 
@@ -144,7 +139,6 @@ void assign( size_type count, const T& value )
         while (count--) 
             this->_alloc.construct(_end++, value);
     }
-
 }
 
 template <class InputIt>
@@ -156,7 +150,7 @@ void assign( InputIt first, InputIt last, typename ft::enable_if<!ft::is_integra
         this->_end_capacity = this->_begin + n;
         this->_end = this->_begin;
     } else 
-    { this->clear(); }
+        this->clear();
     while (n--)
         this->_alloc.construct(this->_end++, *first++);
 }
@@ -415,12 +409,10 @@ void push_back( const T& value )
         reserve(capacity() * 2);
     this->_alloc.construct(_end++, value);
 }
-
+void pop();
 // pop_back()   -   removes the last element
 void pop_back()
-{
-    _alloc.destroy(--_end);
-}
+{   _alloc.destroy(--_end); }
 
 // resize() -   changes the number of elements stored
 void resize( size_type count )
