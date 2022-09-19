@@ -71,14 +71,6 @@ explicit vector( size_type count, const T& value = T(), const Allocator& alloc =
         this->_alloc.construct(_end++, value);    // malloc un tableau de taille begin-end, incremente end pour qu il pointe apres le tableau (iterator end() tmtc)
 }
 
-// explicit vector( size_type count, const T& value)
-// {   this->begin = this->_alloc.allocate(count);
-//     this->_end_capacity = this->begin + count;
-//     this->_end = this->_begin;
-//     for (; count > 0; count--)
-//         this->_alloc.construct(_end++, value);
-// }
-
 template< class InputIt >
 vector( InputIt first, InputIt last, const Allocator& alloc = Allocator(), typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL) : _alloc(alloc) 
 {   
@@ -109,17 +101,16 @@ vector( const vector& src) : _alloc(src._alloc)
 
 vector& operator=( const vector& other )
 { 
-        this->clear();
-        this->_alloc.deallocate(this->_begin, this->capacity());
-        this->_begin = this->_end= this->_end_capacity = NULL;
-        const_iterator it = other.begin();
-        size_type s = other.capacity();
-        this->_begin = this->_alloc.allocate(other.capacity());
-        this->_end_capacity = this->_begin + s;
-        this->_end = this->_begin;
-        while (s--)
-            this->_alloc.construct(_end++, *it++);
-
+    this->clear();
+    this->_alloc.deallocate(this->_begin, this->capacity());
+    //this->_begin = this->_end= this->_end_capacity = NULL;
+    const_iterator it = other.begin();
+    size_type s = other.size();
+    this->_begin = this->_alloc.allocate(other.capacity());
+    this->_end_capacity = this->_begin + other.capacity();
+    this->_end = this->_begin;
+    while (s--)
+        this->_alloc.construct(_end++, *it++);
     return *this;
 }
 
@@ -268,11 +259,7 @@ void reserve( size_type new_cap )
 
 // capacity()   -   returns the number of elements that the container has currently allocated space for.
 size_type capacity() const
-{   size_type   n = 0;
-    for (const_iterator it = this->begin(); it != this->end(); it++)
-        n++;
-    return n;   }
-
+{   return (this->_end_capacity - this->_begin);    }
 
 /*  Modifiers   */
 
