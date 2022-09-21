@@ -1,78 +1,75 @@
-#include <iterator>
-#include <vector>
-#include <algorithm>
-#include "vector.hpp"
 #include <iostream>
-#include <list>
-#include <map>
-#include <utility>
-#include <stack>
+#include <set>
+#include "./RedBlackTree.hpp"
 
+#define T1 std::string
 
-#define TESTED_TYPE int
-// #define TESTED_NAMESPACE std
-#define TESTED_NAMESPACE ft
-#define T_SIZE_TYPE size_t
+typedef std::set<T1>::iterator iterator;
 
+static int iter = 0;
+
+#define _pair std::pair
 
 template <typename T>
-void	printSize(TESTED_NAMESPACE::vector<T> const &vct, bool print_content = true)
+std::string	printPair(const T &iterator, bool nl = true, std::ostream &o = std::cout)
 {
-	const T_SIZE_TYPE size = vct.size();
-	const T_SIZE_TYPE capacity = vct.capacity();
-	const std::string isCapacityOk = (capacity >= size) ? "OK" : "KO";
-	// Cannot limit capacity's max value because it's implementation dependent
+	o << "value: " << *iterator;
+	if (nl)
+		o << std::endl;
+	return ("");
+}
 
-	std::cout << "size: " << size << std::endl;
-	std::cout << "capacity: " << isCapacityOk << std::endl;
-	std::cout << "max_size: " << vct.max_size() << std::endl;
+template <typename T_SET>
+void	printSize(T_SET const &st, bool print_content = 1)
+{
+//	std::cout << "size: " << st.size() << std::endl;
+//	std::cout << "max_size: " << st.max_size() << std::endl;
 	if (print_content)
 	{
-		typename TESTED_NAMESPACE::vector<T>::const_iterator it = vct.begin();
-		typename TESTED_NAMESPACE::vector<T>::const_iterator ite = vct.end();
+		iterator it = st.begin(), ite = st.end();
 		std::cout << std::endl << "Content is:" << std::endl;
 		for (; it != ite; ++it)
-			std::cout << "- " << *it << std::endl;
+			std::cout << "- " << printPair(it, false) << std::endl;
 	}
 	std::cout << "###############################################" << std::endl;
 }
 
 
-int		main(void)
+template <typename SET, typename U>
+void	ft_insert(SET &st, U param)
 {
-	TESTED_NAMESPACE::vector<TESTED_TYPE> vct(5);
-	TESTED_NAMESPACE::vector<TESTED_TYPE>::iterator it = vct.begin(), ite = vct.end();
+	std::pair<iterator, bool> tmp;
 
-	std::cout << "len: " << (ite - it) << std::endl;
-	for (; it != ite; ++it)
-		*it = (ite - it);
-
-	it = vct.begin();
-	TESTED_NAMESPACE::vector<TESTED_TYPE> vct_range(it, --(--ite));
-	for (int i = 0; it != ite; ++it)
-		*it = ++i * 5;
-
-	it = vct.begin();
-	TESTED_NAMESPACE::vector<TESTED_TYPE> vct_copy(vct);
-	for (int i = 0; it != ite; ++it)
-		*it = ++i * 7;
-	vct_copy.push_back(42);
-	vct_copy.push_back(21);
-
-	std::cout << "\t-- PART ONE --" << std::endl;
-	printSize(vct);
-	printSize(vct_range);
-	printSize(vct_copy);
-
-	vct = vct_copy;
-	vct_copy = vct_range;
-	vct_range.clear();
-
-	std::cout << "\t-- PART TWO --" << std::endl;
-	printSize(vct);
-	printSize(vct_range);
-	printSize(vct_copy);
-	return (0);
+	std::cout << "\t-- [" << iter++ << "] --" << std::endl;
+	tmp = st.insert(param);
+	std::cout << "insert return: " << printPair(tmp.first);
+	std::cout << "Created new node: " << tmp.second << std::endl;
+	printSize(st);
 }
 
+template <typename SET, typename U, typename V>
+void	ft_insert(SET &st, U param, V param2)
+{
+	iterator tst;
 
+	std::cout << "\t-- [" << iter++ << "] --" << std::endl;
+	tst = st.insert(param, param2);
+	std::cout << "insert return: " << printPair(tst);
+	printSize(st);
+}
+
+int		main(void)
+{
+	// std::set<T1> st, st2;
+	RBTree<T1, T1, T1> st, st2;
+
+	ft_insert(st, "lol");
+	ft_insert(st, "mdr");
+
+	ft_insert(st, "mdr");
+	ft_insert(st, "funny");
+
+	ft_insert(st, "bunny");
+	ft_insert(st, "fizz");
+	ft_insert(st, "buzz");
+}
