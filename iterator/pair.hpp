@@ -22,6 +22,9 @@ pair& operator=( const pair& other )
     this->second = other.second;
     return *this;   }
 
+operator pair<const T1, T2>() const 
+{ return (pair<const T1, T2>(first, second)); }
+
 };
 
 template<class T1, class T2>
