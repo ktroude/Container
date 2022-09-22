@@ -31,23 +31,22 @@ struct RBTreeNode
 template<class T>    // take pointer | 
 struct TreeIterator
 {
+    public:
+
 	typedef T					value_type;
 	typedef RBTreeNode<T>		Node;
-	typedef RBTreeNode<const T>		const_Node;
+	typedef RBTreeNode<const T>	const_Node;
 	typedef TreeIterator<T>		iterator;    //Type of forward iterator
 	typedef	value_type&			reference;
 	typedef value_type*			pointer;
+	
 	Node	*_node;                                //Encapsulated pointer
 
-
-    public:
-
 TreeIterator(Node* node) :_node(node) {}
-TreeIterator(const_Node &node) :_node(&node) {}
 TreeIterator() : _node(NULL) {}
 TreeIterator(const iterator &it) :  _node(it._node) {}
 
-operator TreeIterator<const T&> () const   // cast iterator -> const iterator
+operator TreeIterator<const T> () const   // cast iterator -> const iterator
 {	
 	return _node;
 }
@@ -174,7 +173,7 @@ typedef const_value_type& 						const_reference;
 
 typedef Allocator 								allocator_type;
 typedef typename Allocator::pointer				alloc_pointer;
-typedef typename Allocator::const_pointer		const_pointer;
+//typedef typename Allocator::const_pointer		const_pointer;
 
 typedef RBTreeNode<value_type>					Node;
 typedef RBTreeNode<const_value_type>			const_Node;
@@ -212,10 +211,7 @@ explicit map( const Compare& comp, const Allocator& alloc = Allocator() ) : _roo
 // map( InputIt first, InputIt last,const Compare& comp = Compare(), const Allocator& alloc = Allocator() ) : _alloc(alloc), _comp(comp), _root(NULL)
 // {	insert(first, last);	}
 
-map( const map& other ) 
-{	for (iterator it = other.begin; it != other.end(); it++)
-		insert(*it);
-}
+map( const map& other ) : _root(other._root), _alloc(other._alloc), _comp(other._comp) {}
 
 void	destroy_left(Node *root)
 {
@@ -331,7 +327,7 @@ const_iterator find( const Key& key ) const
 	iterator it = begin();
 	for (; it != end(); ++it)
 		if (it._node->_data.first == key)
-			return it;
+			return const_iterator(reinterpret_cast<const_Node *>(it._node));
 	return end();
 }
 
@@ -340,7 +336,7 @@ ft::pair<iterator, bool> insert( const value_type& value )
 {
 	for (iterator it = begin(); it != end();)
 		if (it++ == end())					// check, is value already exist in the tree?
-			return (ft::make_pair(it, false));
+			return (ft::make_pair(iterator(), false));
 	Node *NewNode = creatNode(value);	
 	if (_root == NULL)
 	{
