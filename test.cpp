@@ -2,19 +2,27 @@
 #include <map>
 #include <iostream>
 
+
 #define T1 int
 #define T2 std::string
+#define _pair TESTED_NAMESPACE::pair
 #define TESTED_NAMESPACE ft
+// #define TESTED_NAMESPACE std
 
 typedef TESTED_NAMESPACE::map<T1, T2>::value_type T3;
 typedef TESTED_NAMESPACE::map<T1, T2>::iterator iterator;
 
-#define _pair TESTED_NAMESPACE::pair
+
+
+
+
+
+
 
 template <typename T>
-std::string	printPair(T &iterator, bool nl = true, std::ostream &o = std::cout)
+std::string	printPair(const T &iterator, bool nl = true, std::ostream &o = std::cout)
 {
-	o << "key: " << iterator.first << " | value: " << iterator.second;
+	o << "key: " << iterator->first << " | value: " << iterator->second;
 	if (nl)
 		o << std::endl;
 	return ("");
@@ -23,11 +31,11 @@ std::string	printPair(T &iterator, bool nl = true, std::ostream &o = std::cout)
 template <typename T_MAP>
 void	printSize(T_MAP const &mp, bool print_content = 1)
 {
-//	std::cout << "size: " << mp.size() << std::endl;
-//	std::cout << "max_size: " << mp.max_size() << std::endl;
+	std::cout << "size: " << mp.size() << std::endl;
+	std::cout << "max_size: " << mp.max_size() << std::endl;
 	if (print_content)
 	{
-		typename T_MAP::iterator it = mp.begin(), ite = mp.end();
+		typename T_MAP::const_iterator it = mp.begin(), ite = mp.end();
 		std::cout << std::endl << "Content is:" << std::endl;
 		for (; it != ite; ++it)
 			std::cout << "- " << printPair(it, false) << std::endl;
@@ -35,17 +43,16 @@ void	printSize(T_MAP const &mp, bool print_content = 1)
 	std::cout << "###############################################" << std::endl;
 }
 
-// void	printReverse(TESTED_NAMESPACE::map<T1, T2> &mp)
-// {
-// 	iterator it = mp.end(), ite = mp.begin();
 
-// 	std::cout << "printReverse:" << std::endl;
-// 	while (it != ite) {
-// 		it--;
-// 		std::cout << "-> " << printPair(it, false) << std::endl;
-// 	}
-// 	std::cout << "_______________________________________________" << std::endl;
-// }
+
+
+
+
+
+
+
+
+
 
 static int iter = 0;
 
@@ -74,8 +81,8 @@ void	ft_insert(MAP &mp, U param, V param2)
 
 int		main(void)
 {
-	std::map<T1, T2> mp, mp2;
-	std::pair<int, char>
+	TESTED_NAMESPACE::map<T1, T2> mp, mp2;
+
 	ft_insert(mp, T3(42, "lol"));
 	ft_insert(mp, T3(42, "mdr"));
 
@@ -86,5 +93,10 @@ int		main(void)
 	ft_insert(mp, T3(21, "fizz"));
 	ft_insert(mp, T3(38, "buzz"));
 
-	return (0);
+	ft_insert(mp, mp.begin(), T3(55, "fuzzy"));
+
+	ft_insert(mp2, mp2.begin(), T3(1337, "beauty"));
+	ft_insert(mp2, mp2.end(), T3(1000, "Hello"));
+	ft_insert(mp2, mp2.end(), T3(1500, "World"));
+
 }

@@ -1,6 +1,7 @@
 #include <functional>
 #include "./iterator/bidirectional_iterator.hpp"
 #include "./iterator/pair.hpp"
+#include <iostream>
 
 namespace ft
 {
@@ -20,7 +21,7 @@ struct RBTreeNode
 	T               			_data;      //Stored data (ft::pair<K, V> for map && ft::pair<K, K> for set)
 	Color           			_color;     //The color of the node
 	
-	typename std::allocator<T>::pointer	_ptr;		//Pointer used for allocator functions
+//	typename std::allocator<T>::pointer		_ptr;		//Pointer used for allocator functions
 	
 	RBTreeNode(const T& x) :_left(NULL) ,_right(NULL) ,_prev(NULL) , _data(x) ,_color(RED) {}
 
@@ -154,7 +155,7 @@ bool	operator!=(ft::TreeIterator<Iterator> lhs, ft::TreeIterator<Iterator> rhs)
 {	return !(lhs == rhs);	}
 
 
-template< class Key, class T, class Compare = std::less<Key>, class Allocator = std::allocator< ft::RBTreeNode <ft::pair<const Key, T> > > >
+template< class Key, class T, class Compare = std::less<Key>, class Allocator = std::allocator<ft::RBTreeNode< ft::pair<const Key, T> > > >
 class map
 {
     public:
@@ -171,7 +172,7 @@ typedef value_type&								reference;
 typedef value_type*								pointer;
 typedef const_value_type& 						const_reference;
 
-typedef Allocator 								allocator_type;
+typedef Allocator								allocator_type;
 typedef typename Allocator::pointer				alloc_pointer;
 //typedef typename Allocator::const_pointer		const_pointer;
 
@@ -179,7 +180,7 @@ typedef RBTreeNode<value_type>					Node;
 typedef RBTreeNode<const_value_type>			const_Node;
 
 typedef TreeIterator<value_type>				iterator;
-typedef TreeIterator<const_value_type>		const_iterator;
+typedef TreeIterator<const_value_type>			const_iterator;
 typedef ft::reverse_iterator<iterator>			reverse_iterator;
 typedef ft::reverse_iterator<const_iterator>	const_reverse_iterator;
 
@@ -191,7 +192,7 @@ key_compare comp;
 value_compare(key_compare c) : comp(c) {}
 	public:
 bool operator()(const value_type& x, const value_type& y) const
-    {	return comp(x.first, y.first);	}
+    {	return comp(x.first, y.first);	} // x < y
 };
 
     protected:
@@ -213,33 +214,18 @@ explicit map( const Compare& comp, const Allocator& alloc = Allocator() ) : _roo
 
 map( const map& other ) : _root(other._root), _alloc(other._alloc), _comp(other._comp) {}
 
-void	destroy_left(Node *root)
-{
-	if (!root || !root->_left)
-		return ;
-	Node* left = _root;
-	while (left && left->_left)
-		left = left->_left;
-	delNode(left);
-	destroy_left(root);
-}
+	void DelTree(Node* root)
+	{
+		if (!root)
+			return ;
+		DelTree(root->_left);
+		DelTree(root->_right);
+		delNode(root);
+	}
 
-void	destroy_right(Node *root)
+~map()
 {
-	if (!root || !root->_left)
-		return ;
-	Node* right = _root;
-	while (right && right->_right)
-		right = right->_right;
-	delNode(right);
-	destroy_left(root);
-}
-
-~map() 
-{
-	destroy_left(_root);
-	destroy_right(_root);
-	delNode(_root);	
+	DelTree(_root);
 }
 
 map& operator=( const map& other )
@@ -310,8 +296,7 @@ size_type max_size() const
 {	return _alloc.max_size();	}
 
 void clear()
-{	for (iterator it = begin(); it != end(); it++)
-		delNode(it->_node);	}
+{	DelTree(_root); }
 
 iterator find ( const Key& key )
 {
@@ -331,15 +316,11 @@ const_iterator find( const Key& key ) const
 	return end();
 }
 
-
 ft::pair<iterator, bool> insert( const value_type& value )
 {
-	for (iterator it = begin(); it != end();)
-		if (it++ == end())					// check, is value already exist in the tree?
-			return (ft::make_pair(iterator(), false));
-	Node *NewNode = creatNode(value);	
 	if (_root == NULL)
 	{
+		Node *NewNode = creatNode(value);	
 		_root = NewNode;
 		_root->_color = BLACK;
 		return ft::make_pair(iterator(_root), true);
@@ -351,9 +332,12 @@ ft::pair<iterator, bool> insert( const value_type& value )
 		parent = current;
 		if (value.first > current->_data.first)
 			current = current->_right;
-		else
+		else if (value.first < current->_data.first)
 			current = current->_left;
+		else
+			return (ft::make_pair(current, false));
 	}
+	Node *NewNode = creatNode(value);	
 	current = NewNode;
 	current->_prev = parent;						// creat link between the NewNode and his parent
 	if (current->_data.first > parent->_data.first)			// create link between parent && NewNode
@@ -364,7 +348,96 @@ ft::pair<iterator, bool> insert( const value_type& value )
 	return ft::make_pair(iterator(current), true);
 }
 
+iterator insert( iterator hint, const value_type& value )
+{
+	hint = begin();
+	if (_root == NULL)
+	{
+		Node *NewNode = creatNode(value);	
+		_root = NewNode;
+		_root->_color = BLACK;
+		return iterator(_root);
+	}
+	Node	*current = _root;
+	Node	*parent = NULL;
+	while (current) 
+	{
+		parent = current;
+		if (value.first > current->_data.first)
+			current = current->_right;
+		else if (value.first < current->_data.first)
+			current = current->_left;
+		else
+			return iterator(current);
+	}
+	Node *NewNode = creatNode(value);	
+	current = NewNode;
+	current->_prev = parent;						// creat link between the NewNode and his parent
+	if (current->_data.first > parent->_data.first)			// create link between parent && NewNode
+		parent->_right = current;
+	else
+		parent->_left = current;
+	ajustTree(current);
+	return iterator(current);
+}
+
+template< class InputIt >
+void insert( InputIt first, InputIt last )
+{
+	for (InputIt it = first; it != last; it++)
+		insert(*it);
+}
+
+
+
+
 	private:
+
+Node *add(value_type value)
+{
+	if (find(value.first) == end())
+		return (NULL);
+	Node *n = creatNode(value);
+	insert(n);
+	return (n);
+}
+
+void insert(Node* n) 
+{
+	if (!_root) 
+	{
+		_root = n;
+		return;
+	}
+
+	Node *curr = _root;
+	while (1) 
+	{
+		if (_comp(curr->_data, n->_data))
+		{
+			if (!curr->_right)
+			{
+				n->_prev= curr;
+				curr->_right= n;
+				break;
+			}
+		else
+			curr = curr->_right;
+		} 
+		else
+		{
+			if (!curr->_left)
+			{
+				n->_prev = curr;
+				curr->_left= n;
+				break;
+		} 
+		else
+			curr = curr->_left;
+		}
+	}
+		ajustTree(n);
+}
 
 Node	*creatNode(value_type value)
 {
@@ -460,12 +533,12 @@ void rotate_left(Node* parent)
 		Node* subR = parent->_right;
 		Node* subRL = subR->_left;
 		Node* parentParent = parent->_prev;
-		//先旋转
+
 		parent->_right = subRL;
 		subR->_left = parent;
 
 		parent->_prev = subR;
-		//在改父亲结点
+
 		if (subRL)
 			subRL->_prev = parent;
 		if (_root == parent)
@@ -476,7 +549,7 @@ void rotate_left(Node* parent)
 
 		else
 		{
-			//subR旋转后可能是左右子树2种情况
+
 			if (parentParent->_left == parent)
 				parentParent->_left = subR;
 			else
@@ -488,16 +561,15 @@ void rotate_left(Node* parent)
 	{
 		Node* subL = parent->_left;
 		Node* subLR = subL->_right;
-		Node* parentParent = parent->_prev;//记录parent的父亲结点
-		//subLR做parent->_left
+		Node* parentParent = parent->_prev;
+
 		parent->_left = subLR;
 		subL->_right = parent;
-		//同时更新动的2个节点的parent
-		//注意subLR还可能是空结点
+
 		if (subLR)
 			subLR->_prev = parent;
 		parent->_prev = subL;
-		//parent可能是单独的树，或者子树,分情况
+
 		if (_root == parent)
 		{
 			_root = subL;
@@ -506,13 +578,13 @@ void rotate_left(Node* parent)
 
 		else
 		{
-			//还有可能parent是子树，可能是左子树
+
 			if (parentParent->_left == parent)
 				parentParent->_left = subL;
 			else
-				//也可能是右子树
+
 				parentParent->_right = subL;
-			//调整subL的父亲结点
+
 			subL->_prev = parentParent;
 		}
 	}
