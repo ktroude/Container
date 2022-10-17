@@ -48,8 +48,8 @@ TreeIterator() : _node(NULL) {}
 TreeIterator(const iterator &it) :  _node(it._node) {}
 
 operator TreeIterator<const T> () const   // cast iterator -> const iterator
-{	
-	return _node;
+{
+	return TreeIterator<const T>((const_Node *)_node);
 }
 
 iterator &operator=(const iterator& it)
@@ -84,7 +84,10 @@ iterator operator++(int)
 
 iterator& operator--()
 {
-    Decrement();
+	if (_node == NULL)
+		_node = _node->_prev;
+	else
+    	Decrement();
     return *this;
 }
 
@@ -208,29 +211,33 @@ value_compare	_comp;
 map() :_root(NULL), _alloc(Allocator()), _comp(Compare()) {}
 explicit map( const Compare& comp, const Allocator& alloc = Allocator() ) : _root(NULL), _alloc(alloc), _comp(comp){}
 
-// template< class InputIt >
-// map( InputIt first, InputIt last,const Compare& comp = Compare(), const Allocator& alloc = Allocator() ) : _alloc(alloc), _comp(comp), _root(NULL)
-// {	insert(first, last);	}
+template< class InputIt >
+explicit map( InputIt first, InputIt last,const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : _root(NULL), _alloc(alloc), _comp(comp)
+{
+	while (first != last)
+		insert(*first++);
+}
 
 map( const map& other ) : _root(other._root), _alloc(other._alloc), _comp(other._comp) {}
 
-	void DelTree(Node* root)
+	void DelTree(Node* x)
 	{
-		if (!root)
-			return ;
-		DelTree(root->_left);
-		DelTree(root->_right);
-		delNode(root);
+		while (x != 0) {
+			DelTree(x->_right);
+			Node *y = x->_left;
+			delNode(x);
+			x = y;
+		}
 	}
 
-~map()
-{
-	DelTree(_root);
-}
+~map(){}
 
-map& operator=( const map& other )
-{	for (iterator it = other.begin(); it != other.end(); it++)
-		insert(it._node->_data);
+map& operator=(const map& x)
+{
+	clear();
+	insert(x.begin(), x.end());
+//    if (this != &x)
+//		_root = x._root;
 	return *this;
 }
 
@@ -245,15 +252,15 @@ T& at( const Key& key )
 	return _root->_data.second;
 }
 
-T& operator[]( const Key& key )
-{	for (iterator it = begin(); it != end(); it++)
-		if (it->_node->_data.first == key)
-			return it->_node->_data.second;
-	return _root->_data.second;
+T& operator[] (const key_type& key) {
+    iterator iter = insert(value_type(key, mapped_type())).first;
+    return iter->second;
 }
 
 iterator begin()   // Most left node
 {
+	if (!_root)
+		return iterator(NULL);
 	Node* left = _root;
 	while (left && left->_left)
 		left = left->_left;
@@ -262,6 +269,8 @@ iterator begin()   // Most left node
 
 const_iterator begin() const
 {
+	if (!_root)
+		return iterator (NULL);
 	Node *left = _root;
 	while (left && left->_left)
 		left = left->_left;
@@ -270,7 +279,9 @@ const_iterator begin() const
 }
 
 iterator end() // Most right node (ether NIL or NULL)  -> try implement NIL (safer)
-{   return iterator(NULL);  }
+{
+	return iterator(NULL);
+}
 
 const_iterator end() const
 {	return const_iterator(NULL);	}
@@ -285,7 +296,9 @@ bool empty() const
 {	return (_root ? false : true);	}
 
 size_type size() const
-{	
+{
+	if (_root == NULL)
+		return 0;
 	size_type n = 0;	
 	for (const_iterator it = begin(); it != end(); it++)
 		n++;
@@ -296,7 +309,8 @@ size_type max_size() const
 {	return _alloc.max_size();	}
 
 void clear()
-{	DelTree(_root); }
+{	DelTree(_root);
+	_root = NULL;	}
 
 iterator find ( const Key& key )
 {
@@ -309,7 +323,7 @@ iterator find ( const Key& key )
 
 const_iterator find( const Key& key ) const
 {	
-	iterator it = begin();
+	const_iterator it = begin();
 	for (; it != end(); ++it)
 		if (it._node->_data.first == key)
 			return const_iterator(reinterpret_cast<const_Node *>(it._node));
@@ -389,6 +403,73 @@ void insert( InputIt first, InputIt last )
 }
 
 
+ft::pair<iterator,iterator> equal_range( const Key& key )
+{	return ft::make_pair(lower_bound(key), upper_bound(key));	}
+
+ft::pair<const_iterator,const_iterator> equal_range( const Key& key ) const
+{	return ft::make_pair(lower_bound(key), upper_bound(key));	}
+
+iterator lower_bound( const Key& key )
+{
+	for (iterator it = begin(); it != end(); it++)
+		if (it._node->_data.first >= key)
+			return it;
+	return end();
+}
+
+const_iterator lower_bound( const Key& key ) const
+{
+	for (const_iterator it = begin(); it != end(); it++)
+		if (it._node->_data.first >= key)
+			return it;
+	return end();
+}
+
+iterator upper_bound( const Key& key )
+{
+	for (iterator it = begin(); it != end(); it++)
+		if (it._node->_data.first > key)
+			return it;
+	return end();
+}
+
+const_iterator upper_bound( const Key& key ) const
+{
+	for (const_iterator it = begin(); it != end(); it++)
+		if (it._node->_data.first > key)
+			return it;
+	return end();
+}
+
+key_compare key_comp() const
+{	return _comp.comp;	}
+
+value_compare value_comp() const
+{	return _comp;	}
+
+size_type count(const key_type& x) const 
+{ return find(x) == end() ? 0 : 1; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	private:
@@ -450,6 +531,7 @@ void	delNode(Node *to_del)
 {
 	_alloc.destroy(to_del);
 	_alloc.deallocate(to_del, 1);
+	to_del = NULL;
 }
 
 Node	*getParent(Node *current)
@@ -514,15 +596,15 @@ void	ajustTree(Node *n)		// ajust color and perform rotation
 			rotate_right(n);
 			ajustTree(gp);
 		}
-		if (parent && n == parent->_right && gp && parent == gp->_right)
+		if (parent && gp && n == parent->_right && parent == gp->_right)
 		{
 			rotate_left(parent);
-			ajustTree(gp);
+//			ajustTree(gp);
 		}
 		if (parent && n == parent->_left && gp && parent == gp->_left)
 		{
 			rotate_right(parent);
-			ajustTree(gp);
+//			ajustTree(gp);
 		}
 	}
 	return ;
@@ -623,269 +705,4 @@ void rotate_left(Node* parent)
 
 
 } //namespace ft
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-template <class T>
-struct Node
-{
-    Node                        *_prev;
-    Node                        *_right;
-    Node                        *_left:
-    char                        _color;     // 'R'(red) && 'B' (black)
-    T                           _data;
-    bool                        _NIL;       // true = NIL | false = no NIL
-    std::allocator<T>           _alloc;
-    std::allocator<T>::pointer  _ptr;
-
-    Node(const &T x) : _prev(NULL), _right(NULL), _left(NULL), _color('R'), _data(x), _NIL(false)
-    {   _ptr = _alloc.allocate(1); 
-        _alloc.construct(_ptr, _data);  }
-    
-    Node() : _prev(NULL), _right(NULL), _left(NULL), _color('B'), _NIL(true)
-    {   _ptr = _alloc.allocate(1);
-        _alloc.construct(_ptr, 0);  }
-};
-
-
-
-template<class T>
-class RBTree
-{
-
-	public:
-
-typedef typename ft::RBTreeIterator<T>	iterator;
-
-
-    protected:
-Node    *_root;
-Node    *_current;  // utile? a voir
-
-    public:
-RBTree()
-{   _root = &Node();
-    _current = _root;   }
-
-RBTree(const T& x)
-{   _root = &Node(x);
-    _current = _root;   }
-
-Node    *creatNode()
-{   return & Node();    }
-
-Node    *creatNode(const T& x)
-{   return & Node(x);   }
-
-void    delNode(Node *n)
-{   n->_alloc.destroy(n->_ptr);
-    n->_alloc.deallocate(n->_ptr, 1);   }
-
-iterator begin()
-{
-	Node* left = _root;
-	while (left->_NIL == false) //&& left->_left->_NIL == false)
-		left = left->_left;
-	return iterator(left);
-}
-
-iterator end()
-{
-	Node* right = _root;
-	while (right->_NIL == false)
-		right = right->_right;
-	right = right->_right;
-	return iterator(right);
-}
-
-
-
-};
-
-
-template<class T>
-struct RBTreeIterator
-{
-    private:
-
-Node* _current;
-
-    public:
-
-typedef RBTree<T> 			Node;
-typedef RBTreeIterator<T> 	iterator;
-
-RBTreeIterator(Node* n= NULL) :_current(n) {} // Constructors 
-
-T& operator*() 
-{   return _current->_data;    }
-
-T* operator->() 
-{   return &(_current->_data);  }
-
-iterator& operator++()
-{
-	Increment();
-	return *this;
-}
-
-iterator& operator++(int) 
-{
-	iterator tmp = this;
-	Increment();
-	return tmp;
-}
-	
-iterator& operator--()
-{
-	Decrement();
-	return *this;
-}
-
-iterator& operator--(int) 
-{
-	iterator tmp = this;
-	Decrement();
-	return tmp;
-}
-
-bool operator==(const iterator& s) 
-{	return _current == s._current;	}
-
-bool operator!=(const iterator& s) 
-{	return _current != s._current;	}
-
-    private:
-
-void Increment()
-{   
-	if (_node->_right)
-	{
-		// The next access is the first node in the middle order in the right tree
-		Node* left = _current->_right;
-		while (left->_left)
-		{
-		    left = left->_left;
-		}
-			_current = left;//++Then it becomes the node
-	}
-	else  //The right subtree is empty
-	{ 
-	    //Find an ancestor whose child is not on the father's right
-		Node* cur = _node;
-		Node* prev = cur->_prev;
-		while (prev && cur == prev->_right)
-		{
-			cur = cur->_prev;
-			prev = prev->_prev;
-		}
-		_current = prev;	//++Then it becomes the node
-	}
-	return *this;
-}
-
-void Decrement() 
-{
-	if (_node->_left)
-	{
-			// The next access is the first node in the middle order in the right tree
-		Node* left = _current->_left;
-		while (right->_right)
-		{
-			right = right->_right;
-		}
-		_current = right;
-		}
-	else
-	{
-		Node* cur = _node;
-		Node* parent = cur->_parent;
-		while (parent && cur == parent->_left)
-		{
-		cur = cur->_parent;
-		parent = parent->_parent;
-		}
-		_current = parent;
-	}
-	return *this;
-}
-};
-
-
-
-template< class Key, class T, class Compare = std::less<Key>, class Allocator = std::allocator<ft::pair<const Key, T> > > 
-class map
-{
-
-    public:
-
-typedef Key                         key_type;
-typedef T                           mapped_type;
-typedef ft::pair<const Key, T>      value_type;
-typedef std::size_t                 size_type;
-typedef std::ptrdiff_t              difference_type;
-typedef Compare                     key_compare;
-typedef value_type&                 reference;
-typedef const value_type&           const_reference;
- 
-
-typedef typename ft::RBTreeIterator<value_type> 		iterator;
-typedef typename ft::bidirectional_iterator<const value_type>	const_iterator;
-
-
-// typedef typename ft::bidirectional_iterator<value_type> iterator;
-// typedef typename ft::bidirectional_iterator<value_type> const_iterator;
-typedef typename ft::reverse_iterator<iterator>         reverse_iterator;
-typedef typename ft::reverse_iterator<const_iterator>   const_reverse_iterator;
-
-    protected:
-
-RBTree<ft::pair<K,V> _tree;
-
-    public:
-
-ft::pair<iterator, bool> insert( const value_type& value )
-{
-		if (_root == nullptr)
-		{
-			_root = new Node(kv);
-			_root->_color = BLACK;//The root node is black
-			return make_pair(_root, true);
-		}
-}
-
-template< class InputIt >
-void insert( InputIt first, InputIt last )
-{
-
-}
-
-
-
-
-
-
-
-
-*/
-
 
