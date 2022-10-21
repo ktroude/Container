@@ -233,7 +233,11 @@ explicit map( InputIt first, InputIt last,const Compare& comp = Compare(), const
 		insert(*first++);
 }
 
-map( const map& other ) : _root(other._root), _alloc(other._alloc), _comp(other._comp) {}
+map( const map& other ) : _root(NULL), _alloc(other._alloc), _comp(other._comp)
+{
+	for (const_iterator it = other.begin(); it != other.end(); it++)
+		insert(it._node->_data);
+}
 
 void DelTree(Node* x)
 {
