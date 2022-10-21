@@ -42,8 +42,10 @@ struct TreeIterator
 	typedef value_type*			pointer;
 	
 	Node	*_node;                                //Encapsulated pointer
+	Node	*_max;
 
-TreeIterator(Node* node) :_node(node) {}
+TreeIterator(Node* node) :_node(node), _max(NULL) {}
+TreeIterator(Node* node, Node *max) :_node(node), _max(max) {}
 TreeIterator() : _node(NULL) {}
 TreeIterator(const iterator &it) :  _node(it._node) {}
 
@@ -82,11 +84,16 @@ iterator operator++(int)
     return tmp;
 }
 
+
 iterator& operator--()
 {
-	if (_node == NULL)
-		_node = _node->_prev;
-	else
+	if (_node == NULL && _max)
+	{
+		_node = _max;
+		_max = NULL;
+		return *this;
+	}
+	else if (_node)
     	Decrement();
     return *this;
 }
@@ -94,7 +101,13 @@ iterator& operator--()
 iterator operator--(int)
 {
 	iterator tmp = TreeIterator(this->_node);
-    Decrement();
+    if (_node == NULL && _max)
+	{
+		_node = _max;
+		_max = NULL;
+	}
+	else
+    	Decrement();
     return tmp;
 }
 
@@ -147,6 +160,7 @@ iterator& Decrement() // Same logic as Increment but here going to left
 	}
 	return *this;
 }
+
 };
 
 template <class T>
@@ -201,6 +215,7 @@ bool operator()(const value_type& x, const value_type& y) const
     protected:
 
 Node    		*_root;
+// Node			*_NIL;
 allocator_type	_alloc;
 value_compare	_comp;
 
@@ -220,15 +235,17 @@ explicit map( InputIt first, InputIt last,const Compare& comp = Compare(), const
 
 map( const map& other ) : _root(other._root), _alloc(other._alloc), _comp(other._comp) {}
 
-	void DelTree(Node* x)
-	{
-		while (x != 0) {
-			DelTree(x->_right);
-			Node *y = x->_left;
-			delNode(x);
-			x = y;
-		}
+void DelTree(Node* x)
+{
+	if (!x)
+		return;
+	while (x != 0) {
+		DelTree(x->_right);
+		Node *y = x->_left;
+		delNode(x);
+		x = y;
 	}
+}
 
 ~map(){}
 
@@ -259,8 +276,6 @@ T& operator[] (const key_type& key) {
 
 iterator begin()   // Most left node
 {
-	if (!_root)
-		return iterator(NULL);
 	Node* left = _root;
 	while (left && left->_left)
 		left = left->_left;
@@ -269,8 +284,6 @@ iterator begin()   // Most left node
 
 const_iterator begin() const
 {
-	if (!_root)
-		return iterator (NULL);
 	Node *left = _root;
 	while (left && left->_left)
 		left = left->_left;
@@ -280,11 +293,22 @@ const_iterator begin() const
 
 iterator end() // Most right node (ether NIL or NULL)  -> try implement NIL (safer)
 {
-	return iterator(NULL);
+	Node *ret = _root;
+	while (ret && ret->_right)
+		ret = ret->_right;
+	return iterator(NULL, ret);
 }
 
 const_iterator end() const
-{	return const_iterator(NULL);	}
+{
+	return const_iterator(NULL);
+// 	Node *ret = _root;
+// 	while (ret && ret->_right)
+// 		ret = ret->_right;
+// 	const_iterator	it;
+// 	it._node = ret;
+// 	return ++it;
+}
 
 reverse_iterator rbegin();
 const_reverse_iterator rbegin() const;
@@ -450,6 +474,454 @@ value_compare value_comp() const
 size_type count(const key_type& x) const 
 { return find(x) == end() ? 0 : 1; }
 
+iterator erase( iterator pos )
+{
+	remove(pos._node);
+	return pos;
+}
+
+iterator erase( iterator first, iterator last )
+{
+	iterator ret;
+	for (iterator it = first; it != last;)
+		ret = erase(it++);
+	return ret;
+}
+
+size_type erase( const Key& key )
+{
+	iterator pos = find(key);
+	if (pos == end())
+		return 0;
+	erase(pos);
+	return 1;
+}
+
+void remove(Node *n)
+{
+	Node *x, *y, *tmp;
+	Color y_color;
+	
+	y = n;
+	y_color = n->_color;
+	tmp = NULL;
+	if (!n->_left && !n->_right)
+	{
+		tmp = creatNode(n->_data);
+		tmp->_color = BLACK;
+		transplant(n, tmp);
+		x = tmp;
+	}
+	else if (!n->_left)
+	{
+		x = n->_right;
+		transplant(n, n->_right);
+	}
+	else if (!n->_right)
+	{
+		x = n->_left;
+		transplant(n, n->_left);
+	}
+	else
+	{
+		y = minimum(n);
+		x = y->_left;
+		if (!x)
+		{
+			tmp = creatNode(n->_data);
+			tmp->_color = BLACK;
+			tmp->_prev = y;
+			y->_left = tmp;
+			x = tmp;
+		}
+		y_color = y->_color;
+		if (y->_prev != n)
+		{
+			transplant(y, x);
+			y->_left = n->_left;
+			if (y->_left)
+				y->_left->_prev = y;
+		}
+		transplant(n, y);
+		y->_color = n->_color;
+		y->_right = n->_right;
+		if (y->_right)
+		y->_right->_prev = y;
+	}
+	if (y_color == BLACK)
+		adjustRemove(x);
+	if (tmp)
+	{
+		transplant(tmp, NULL);
+		delNode(tmp);
+	}
+}
+
+void adjustRemove(Node *n)
+{
+	while (n != _root && n->_color)
+	{
+		if (n->_prev && n == n->_prev->_left)
+		{
+			Node *x = n->_prev->_right;
+			if (x && x->_color == RED)
+			{
+				x->_color = BLACK;
+				n->_prev->_color = RED;
+				rotate_left(n->_prev);
+				x = n->_prev->_right;
+			}
+			if (x && (!x->_left || x->_left->_color == BLACK) && (!x->_right || x->_right->_color == BLACK))
+			{
+				x->_color = RED;
+				n = n->_prev;
+			}
+			else
+			{
+				if (x && (!x->_right || x->_right->_color == BLACK))
+				{
+					if (x->_left)
+						x->_left->_color = BLACK;
+					x->_color = RED;
+					rotate_right(x);
+					x = n->_prev->_right;
+				}
+				if (x)
+				{
+					x->_color = n->_prev->_color;
+					x->_right->_color = BLACK;
+				}
+				n->_prev->_color = BLACK;
+				rotate_left(n->_prev);
+				n = _root;
+			}
+		} 
+		else 
+		{
+			Node *x = n->_prev->_left;
+			if (x && x->_color) 
+			{
+				x->_color = BLACK;
+				n->_prev->_color = RED;
+				rotate_right(n->_prev);
+				x = n->_prev->_left;
+			}
+			if (x && (!x->_right || !x->_right->_color) && (!x->_left || !x->_left->_color))
+			{
+						x->_color = RED;
+						n = n->_prev;
+			}
+			else
+			{
+				if (x && !x->_left->_color)
+				{
+					x->_right->_color = BLACK;
+					x->_color = RED;
+					rotate_left(x);
+					x = n->_prev->_left;
+				}
+				if (x)
+				{
+					x->_color = n->_prev->_color;
+					x->_left->_color = BLACK;
+				}
+				n->_prev->_color = BLACK;
+				rotate_right(n->_prev);
+				n = _root;
+			}
+		}
+	}
+	n->_color = BLACK;
+}
+
+void transplant(Node *n, Node *child)
+{			
+	if (!n->_prev)
+		_root = child;
+	else if (n == n->_prev->_left)
+		n->_prev->_left = child;
+	else
+		n->_prev->_right = child;
+	if (child)
+		child->_prev = n->_prev;
+}
+
+  Node	*minimum(Node *node)
+  {
+	while (node->_left != NULL)
+      node = node->_left;
+    return node;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// iterator erase( iterator first, iterator last )
+// {
+// 	iterator ret = first;
+// 	while (first != last)
+// 	{
+// 		ret = erase(first);
+// 		first++;
+// 	}
+// 	return ret;
+// }
+
+// iterator erase( iterator pos )
+// {
+// 	iterator ret = pos;
+// 	if (pos._node == NULL)
+// 		return end();
+// 	Node *x;
+// 	Node *y;
+// 	Node *z = pos._node;
+
+// 	if (!z)
+// 		return end();
+// 	y = z;
+// 	int y_original_color = y->_color;				// 2	- save his color;
+// 	if (z && z->_left == NULL)						// 3	- if left child is NULL
+// 	{
+// 		x = z->_right;								// a) Assign right child of del to x	
+// 		Transplant(z, z->_right);					// b) Transplant del with x;
+// 	}
+// 	else if (z && z->_right == NULL)				// 4	- if right child is NULL
+// 	{
+// 		x = z->_left;								// a) Assign left child of del to x;
+// 		Transplant(z, z->_left);					// b) Transplant del with x;
+// 	}
+// 	else											// 5	- all other cases
+// 	{
+// 		y = minimum(z->_right);						// a) Assign min of right substree of  del into y;
+//     	y_original_color = y->_color;				// b) Save the color of y into original color;
+//     	x = y->_right;								// c) Assign right child of y into x;
+// 		if (y->_prev == z)							// d) If y is a child of del, then set the parent of x as y;
+//         	x->_prev = y;
+// 		else										// e) Else transplant y with right child of y;
+// 		{
+//         	Transplant(y, y->_right);
+//         	y->_right = z->_right;
+//         	y->_right->_prev = y;
+// 		}
+// 		Transplant(z, y);							// f) Transplant del with y;
+//     	y->_left = z->_left;
+//     	y->_left->_prev = y;
+//     	y->_color = z->_color;						// g) Set the color of y with original color;
+// 	}
+// 	delNode(z);
+// 	if (y_original_color == BLACK)					// 6	- if the original color is BLACK then call deleteFix
+//       deleteFix(x);
+// 	return ++ret;
+// }
+
+// size_type erase( const Key& key )
+// {
+// 	iterator it = find(key);
+// 	if (it == end())
+// 		return 0;
+// 	erase(it);
+// 	return 1;
+// }
+
+
+
+
+
+
+
+// void deleteFix(Node *x)
+// {
+// 	Node	*s;
+// 	while (x != _root && x->_color == BLACK)									// 1	- loop for this algo, oppering while x is not root and color of x is black
+// 	{
+//     	if (x == x->_prev->_left) 												// 2	- If x ios the left child of it's parent :
+// 		{
+//         	s = x->_prev->_right;												// a) assign s to the uncle of x;
+//         	if (s->_color == RED)												// b) if the uncle is RED	------> CASE I
+// 			{
+//         		s->_color = BLACK;												// a- set color of right child of x's parent as black;
+//         		x->_prev->_color = RED;											// b- set the color of x prev as RED;
+//         		rotate_left(x->_prev);											// c- left rotate x parent;
+//         		s = x->_prev->_right;											// d- assign the right child of the parent of x in s;
+//         	}
+//         	if (s->_left->_color == BLACK && s->_right->_color == BLACK)		// c) if the color of both right n left child are BLACK  ------> CASE II
+// 			{
+//         		s->_color = RED;												// a- set color of s as RED;
+//           		x = x->_prev;													// b- assign parent of x to x;
+//         	}
+// 			else																// d) if color of right child of s is black ------> CASE III
+// 			{
+//         		if (s->_right->_color == BLACK)									
+// 				{
+//         			s->_left->_color = BLACK;									// a- set the color of left child of s as black;
+//             		s->_color = RED;											// b- set color of s as red; 
+//             		rotate_right(s);												// c- right rotate s;
+//             		s = x->_prev->_right;										// d- assign the right child of parent of x into s;
+//         		}																// e) If any of the cqse happend then ------> CASE IV
+//         		s->_color = x->_prev->_color;									// a- set color of s as the color of x's parent;
+//         		x->_prev->_color = BLACK;										// b- set the color of x's parent as black;
+//         		s->_right->_color = BLACK;										// c- set the color of the right child of s as black;
+//         		rotate_left(x->_prev);											// d- left rotate x parent;
+//         		x = _root;														// e- x became the root;
+//         	}
+//       	} 
+// 		else																	// 3	- Same code but for x is the rightchild of his parent;
+// 		{
+//     	    s = x->_prev->_left;
+//         	if (s->_color == RED)
+// 			{
+//         		s->_color = BLACK;
+//         		x->_prev->_color = RED;
+//         		rotate_right(x->_prev);
+//         		s = x->_prev->_left;
+// 			}
+//         	if (s->_right->_color == BLACK && s->_right->_color == BLACK)
+// 			{
+//         		s->_color = RED;
+//         		x = x->_prev;
+//         	}
+// 			else
+// 			{
+//           		if (s->_left->_color == BLACK)
+// 				{
+//     	    	    s->_right->_color = BLACK;
+//     	    	    s->_color = RED;
+//     	    	    rotate_left(s);
+//     	    	    s = x->_prev->_left;
+//     			}
+//           		s->_color = x->_prev->_color;
+//           		x->_prev->_color = BLACK;
+//           		s->_left->_color = BLACK;
+//           		rotate_right(x->_prev);
+//           		x = _root;
+//         }
+//       }
+//     }
+// 	x->_color = BLACK;															// 4	- Set color of root as black
+// }
+
+// void Transplant(Node *n, Node *child)
+// {			
+// 	if (!n->_prev)
+// 		_root = child;
+// 	else if (n == n->_prev->_left)
+// 		n->_prev->_left = child;
+// 	else
+// 		n->_prev->_right = child;
+// 	if (child)
+// 		child->_prev = n->_prev;
+// }
+
+// Node	*minimum(Node *node)		// search smallest key in a subtree from a node
+// {
+// 	while (node->_left != NULL)
+//       node = node->_left;
+//     return node;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -610,66 +1082,123 @@ void	ajustTree(Node *n)		// ajust color and perform rotation
 	return ;
 }
 
-void rotate_left(Node* parent)
-	{
-		Node* subR = parent->_right;
-		Node* subRL = subR->_left;
-		Node* parentParent = parent->_prev;
 
-		parent->_right = subRL;
-		subR->_left = parent;
+void rotate_left(Node *x)
+{
+    Node *y = x->_right;
+    x->_right = y->_left;
+    if (y->_left != NULL)
+    	y->_left->_prev = x;
+    y->_prev = x->_prev;
+    if (x->_prev == NULL)
+    	_root = y;
+    else if (x == x->_prev->_left)
+    	x->_prev->_left = y;
+    else
+    	x->_prev->_right = y;
+    y->_left = x;
+    x->_prev = y;
+  }
 
-		parent->_prev = subR;
+void rotate_right(Node *n)
+{
+	if (!n || !n->_left)
+		return;
+	Node *lc = n->_left ;
+	n->_left = lc->_right;
+	if (n->_left)
+		n->_left->_prev = n;
+	
+	if (!n->_prev)
+		_root = lc;
+	else if (n == n->_prev->_left)
+		n->_prev->_left = lc;
+	else
+		n->_prev->_right = lc;		
+	lc->_prev = n->_prev ;
+	n->_prev = lc;
+	lc->_right = n;
+}
 
-		if (subRL)
-			subRL->_prev = parent;
-		if (_root == parent)
-		{
-			_root = subR;
-			_root->_prev = NULL;
-		}
 
-		else
-		{
+// void rotate_right(Node *x)
+// {
+//     Node *y = x->_left;
+//     x->_left = y->_right;
+//     if (y->_right != NULL)
+//     	y->_right->_prev = x;
+//     y->_prev = x->_prev;
+//     if (x->_prev == NULL)
+// 		_root = y;
+//     else if (x == x->_prev->_right)
+//     	x->_prev->_right = y;
+//     else
+//       x->_prev->_left = y;
+//     y->_right = x;
+//     x->_prev = y;
+// }
 
-			if (parentParent->_left == parent)
-				parentParent->_left = subR;
-			else
-				parentParent->_right = subR;
-			subR->_prev = parentParent;
-		}
-	}
-	void rotate_right(Node* parent)
-	{
-		Node* subL = parent->_left;
-		Node* subLR = subL->_right;
-		Node* parentParent = parent->_prev;
 
-		parent->_left = subLR;
-		subL->_right = parent;
+// void rotate_left(Node* parent)
+// 	{
+// 		Node* subR = parent->_right;
+// 		Node* subRL = subR->_left;
+// 		Node* parentParent = parent->_prev;
 
-		if (subLR)
-			subLR->_prev = parent;
-		parent->_prev = subL;
+// 		parent->_right = subRL;
+// 		subR->_left = parent;
 
-		if (_root == parent)
-		{
-			_root = subL;
-			_root->_prev = NULL;
-		}
+// 		parent->_prev = subR;
 
-		else
-		{
+// 		if (subRL)
+// 			subRL->_prev = parent;
+// 		if (_root == parent)
+// 		{
+// 			_root = subR;
+// 			_root->_prev = NULL;
+// 		}
 
-			if (parentParent->_left == parent)
-				parentParent->_left = subL;
-			else
+// 		else
+// 		{
 
-				parentParent->_right = subL;
+// 			if (parentParent->_left == parent)
+// 				parentParent->_left = subR;
+// 			else
+// 				parentParent->_right = subR;
+// 			subR->_prev = parentParent;
+// 		}
+// 	}
+// 	void rotate_right(Node* parent)
+// 	{
+// 		Node* subL = parent->_left;
+// 		Node* subLR = subL->_right;
+// 		Node* parentParent = parent->_prev;
 
-			subL->_prev = parentParent;
-		}
-	}
+// 		parent->_left = subLR;
+// 		subL->_right = parent;
+
+// 		if (subLR)
+// 			subLR->_prev = parent;
+// 		parent->_prev = subL;
+
+// 		if (_root == parent)
+// 		{
+// 			_root = subL;
+// 			_root->_prev = NULL;
+// 		}
+
+// 		else
+// 		{
+
+// 			if (parentParent->_left == parent)
+// 				parentParent->_left = subL;
+// 			else
+
+// 				parentParent->_right = subL;
+
+// 			subL->_prev = parentParent;
+// 		}
+// 	}
 
 
 

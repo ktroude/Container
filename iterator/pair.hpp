@@ -17,13 +17,14 @@ pair( const T1& x, const T2& y ) : first(x), second(y) {}
 template< class U1, class U2 >
 pair( const pair<U1, U2>& p ) : first(p.first), second(p.second) {}
 
+
 pair& operator=( const pair& other )
 {   this->first = other.first;
     this->second = other.second;
     return *this;   }
 
-operator pair<const T1, T2>() const 
-{ return (pair<const T1, T2>(first, second)); }
+// operator pair<const T1, T2>() const 
+// { return (pair<T1, T2>(first, second)); }
 
 };
 
