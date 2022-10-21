@@ -646,14 +646,25 @@ void transplant(Node *n, Node *child)
 		child->_prev = n->_prev;
 }
 
-  Node	*minimum(Node *node)
+ Node	*minimum(Node *node)
   {
-	while (node->_left != NULL)
-      node = node->_left;
+		if (node->_left)
+			return (max(node->_left));
+
+		if(node->_prev && node == node->_prev->_right)
+			return (node->_prev);
+
+		Node *parent = node;
+		while (parent && parent->_prev && parent == parent->_prev->_left)
+			parent = parent->_prev;
+		return ((parent) ? parent->_prev : NULL);
+	}
+
+  Node *max(Node *node) {
+    while (node->_right != NULL)
+      node = node->_right;
     return node;
   }
-
-
 
 
 
@@ -1234,4 +1245,3 @@ void rotate_right(Node *n)
 
 
 } //namespace ft
-
