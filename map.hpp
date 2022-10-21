@@ -49,8 +49,8 @@ struct TreeIterator
 	Node	*_max;									// Security, avoid --(end()) and things like that
 	Node	*_min;									// Security for ++rend() and that kind of stuff
 
-TreeIterator(Node* node) :_node(node), _max(NULL) {}
-TreeIterator(Node* node, Node *max) :_node(node), _max(max), _min(min) {}
+TreeIterator(Node* node) :_node(node), _max(NULL), _min(NULL) {}
+TreeIterator(Node* node, Node *max) :_node(node), _max(max), _min(NULL) {}
 TreeIterator(Node* node, Node *max, Node *min) :_node(node), _max(max), _min(min) {}
 TreeIterator() : _node(NULL) {}
 TreeIterator(const iterator &it) :  _node(it._node), _max(it._max), _min(it._min) {}
@@ -323,7 +323,7 @@ size_type max_size() const
 {	return _alloc.max_size();	}
 
 void clear()
-{	DelTree(_root);
+{	delTree(_root);
 	_root = NULL;	}
 
 iterator find ( const Key& key )
