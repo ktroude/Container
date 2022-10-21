@@ -358,17 +358,17 @@ ft::pair<iterator, bool> insert( const value_type& value )
 	while (current) 
 	{
 		parent = current;
-		if (value.first > current->_data.first)
+		if (_comp(current->_data, value))//value.first > current->_data.first)
 			current = current->_right;
-		else if (value.first < current->_data.first)
+		else if (_comp(value, current->_data))
 			current = current->_left;
 		else
 			return (ft::make_pair(current, false));
 	}
 	Node *NewNode = creatNode(value);	
 	current = NewNode;
-	current->_prev = parent;						// creat link between the NewNode and his parent
-	if (current->_data.first > parent->_data.first)			// create link between parent && NewNode
+	current->_prev = parent;			
+	if (_comp(parent->_data, current->_data))	
 		parent->_right = current;
 	else
 		parent->_left = current;
@@ -486,7 +486,13 @@ size_type erase( const Key& key )
 	return 1;
 }
 
-void remove(Node *n)
+	
+
+
+
+	private:
+
+void remove(Node *n)		// remove, free a node and keep RBTree properties
 {
 	Node *x, *y, *tmp;
 	Color y_color;
@@ -545,9 +551,6 @@ void remove(Node *n)
 		delNode(tmp);
 	}
 }
-
-
-	private:
 
 Node	*minimum(Node *node)		// return max of the left subtree from node 
 {
