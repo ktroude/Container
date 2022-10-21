@@ -6,6 +6,9 @@
 namespace ft
 {
 
+///////////////////////////////////////////////////////		NODE STRUCT		///////////////////////////////////////////////////////
+														 /*--------------*/
+
 enum Color
 {
 	RED,
@@ -21,13 +24,14 @@ struct RBTreeNode
 	T               			_data;      //Stored data (ft::pair<K, V> for map && ft::pair<K, K> for set)
 	Color           			_color;     //The color of the node
 	
-//	typename std::allocator<T>::pointer		_ptr;		//Pointer used for allocator functions
-	
 	RBTreeNode(const T& x) :_left(NULL) ,_right(NULL) ,_prev(NULL) , _data(x) ,_color(RED) {}
-
-	// operator RBTreeNode<const T> () const 
-	// 	{return const_cast<T>(_data);}   // cast iterator -> const iterator
 };
+
+
+///////////////////////////////////////////////////////		TREE ITERATOR		///////////////////////////////////////////////////////
+														 /*----------------*/
+
+
 
 template<class T>    // take pointer | 
 struct TreeIterator
@@ -41,18 +45,18 @@ struct TreeIterator
 	typedef	value_type&			reference;
 	typedef value_type*			pointer;
 	
-	Node	*_node;                                //Encapsulated pointer
-	Node	*_max;
+	Node	*_node;                           		// Encapsulated pointer
+	Node	*_max;									// Security, avoid --(end()) and things like that
+	Node	*_min;									// Security for ++rend() and that kind of stuff
 
 TreeIterator(Node* node) :_node(node), _max(NULL) {}
-TreeIterator(Node* node, Node *max) :_node(node), _max(max) {}
+TreeIterator(Node* node, Node *max) :_node(node), _max(max), _min(min) {}
+TreeIterator(Node* node, Node *max, Node *min) :_node(node), _max(max), _min(min) {}
 TreeIterator() : _node(NULL) {}
-TreeIterator(const iterator &it) :  _node(it._node) {}
+TreeIterator(const iterator &it) :  _node(it._node), _max(it._max), _min(it._min) {}
 
 operator TreeIterator<const T> () const   // cast iterator -> const iterator
-{
-	return TreeIterator<const T>((const_Node *)_node);
-}
+{	return TreeIterator<const T>((const_Node *)_node);	}
 
 iterator &operator=(const iterator& it)
 {	if (*this != it)
@@ -83,7 +87,6 @@ iterator operator++(int)
     Increment();
     return tmp;
 }
-
 
 iterator& operator--()
 {
@@ -172,6 +175,11 @@ bool	operator!=(ft::TreeIterator<Iterator> lhs, ft::TreeIterator<Iterator> rhs)
 {	return !(lhs == rhs);	}
 
 
+
+///////////////////////////////////////////////////////		MAP		///////////////////////////////////////////////////////
+														 /*-----*/
+
+
 template< class Key, class T, class Compare = std::less<Key>, class Allocator = std::allocator<ft::RBTreeNode< ft::pair<const Key, T> > > >
 class map
 {
@@ -191,7 +199,6 @@ typedef const_value_type& 						const_reference;
 
 typedef Allocator								allocator_type;
 typedef typename Allocator::pointer				alloc_pointer;
-//typedef typename Allocator::const_pointer		const_pointer;
 
 typedef RBTreeNode<value_type>					Node;
 typedef RBTreeNode<const_value_type>			const_Node;
@@ -215,11 +222,8 @@ bool operator()(const value_type& x, const value_type& y) const
     protected:
 
 Node    		*_root;
-// Node			*_NIL;
 allocator_type	_alloc;
 value_compare	_comp;
-
-
 
 	public:
     
@@ -228,28 +232,12 @@ explicit map( const Compare& comp, const Allocator& alloc = Allocator() ) : _roo
 
 template< class InputIt >
 explicit map( InputIt first, InputIt last,const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : _root(NULL), _alloc(alloc), _comp(comp)
-{
-	while (first != last)
-		insert(*first++);
-}
+{	while (first != last)
+		insert(*first++);	}
 
 map( const map& other ) : _root(NULL), _alloc(other._alloc), _comp(other._comp)
-{
-	for (const_iterator it = other.begin(); it != other.end(); it++)
-		insert(it._node->_data);
-}
-
-void DelTree(Node* x)
-{
-	if (!x)
-		return;
-	while (x != 0) {
-		DelTree(x->_right);
-		Node *y = x->_left;
-		delNode(x);
-		x = y;
-	}
-}
+{	for (const_iterator it = other.begin(); it != other.end(); it++)
+		insert(it._node->_data);	}
 
 ~map(){}
 
@@ -257,8 +245,6 @@ map& operator=(const map& x)
 {
 	clear();
 	insert(x.begin(), x.end());
-//    if (this != &x)
-//		_root = x._root;
 	return *this;
 }
 
@@ -295,7 +281,7 @@ const_iterator begin() const
 	return const_iterator(n);
 }
 
-iterator end() // Most right node (ether NIL or NULL)  -> try implement NIL (safer)
+iterator end() // Most right node + 1 (ret is a security for things like "-- map.end()" )
 {
 	Node *ret = _root;
 	while (ret && ret->_right)
@@ -424,12 +410,11 @@ iterator insert( iterator hint, const value_type& value )
 }
 
 template< class InputIt >
-void insert( InputIt first, InputIt last )
+void insert( InputIt first, InputIt last )	// insert with a range
 {
 	for (InputIt it = first; it != last; it++)
 		insert(*it);
 }
-
 
 ft::pair<iterator,iterator> equal_range( const Key& key )
 {	return ft::make_pair(lower_bound(key), upper_bound(key));	}
@@ -469,7 +454,7 @@ const_iterator upper_bound( const Key& key ) const
 	return end();
 }
 
-key_compare key_comp() const
+key_compare key_comp() const	// compare value between 2 keys (check struc in map definition)
 {	return _comp.comp;	}
 
 value_compare value_comp() const
@@ -561,7 +546,29 @@ void remove(Node *n)
 	}
 }
 
-void adjustRemove(Node *n)
+
+	private:
+
+Node	*minimum(Node *node)		// return max of the left subtree from node 
+{
+	if (node->_left)
+		return (max(node->_left));
+	if(node->_prev && node == node->_prev->_right)
+		return (node->_prev);
+	Node *parent = node;
+	while (parent && parent->_prev && parent == parent->_prev->_left)
+		parent = parent->_prev;
+	return ((parent) ? parent->_prev : NULL);
+}
+
+Node	*max(Node *node)			// return the max key from a node in his subtree
+{
+	while (node->_right != NULL)
+    	node = node->_right;
+	return node;
+}
+
+void adjustRemove(Node *n)				// perform operations to maintain the properties of the red black tree	|	https://www.youtube.com/watch?v=w5cvkTXY0vQ
 {
 	while (n != _root && n->_color)
 	{
@@ -638,7 +645,7 @@ void adjustRemove(Node *n)
 	n->_color = BLACK;
 }
 
-void transplant(Node *n, Node *child)
+void transplant(Node *n, Node *child)	// change place between two nodes (n become child and vice versa)
 {			
 	if (!n->_prev)
 		_root = child;
@@ -650,334 +657,13 @@ void transplant(Node *n, Node *child)
 		child->_prev = n->_prev;
 }
 
- Node	*minimum(Node *node)
-  {
-		if (node->_left)
-			return (max(node->_left));
-
-		if(node->_prev && node == node->_prev->_right)
-			return (node->_prev);
-
-		Node *parent = node;
-		while (parent && parent->_prev && parent == parent->_prev->_left)
-			parent = parent->_prev;
-		return ((parent) ? parent->_prev : NULL);
-	}
-
-  Node *max(Node *node) {
-    while (node->_right != NULL)
-      node = node->_right;
-    return node;
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// iterator erase( iterator first, iterator last )
-// {
-// 	iterator ret = first;
-// 	while (first != last)
-// 	{
-// 		ret = erase(first);
-// 		first++;
-// 	}
-// 	return ret;
-// }
-
-// iterator erase( iterator pos )
-// {
-// 	iterator ret = pos;
-// 	if (pos._node == NULL)
-// 		return end();
-// 	Node *x;
-// 	Node *y;
-// 	Node *z = pos._node;
-
-// 	if (!z)
-// 		return end();
-// 	y = z;
-// 	int y_original_color = y->_color;				// 2	- save his color;
-// 	if (z && z->_left == NULL)						// 3	- if left child is NULL
-// 	{
-// 		x = z->_right;								// a) Assign right child of del to x	
-// 		Transplant(z, z->_right);					// b) Transplant del with x;
-// 	}
-// 	else if (z && z->_right == NULL)				// 4	- if right child is NULL
-// 	{
-// 		x = z->_left;								// a) Assign left child of del to x;
-// 		Transplant(z, z->_left);					// b) Transplant del with x;
-// 	}
-// 	else											// 5	- all other cases
-// 	{
-// 		y = minimum(z->_right);						// a) Assign min of right substree of  del into y;
-//     	y_original_color = y->_color;				// b) Save the color of y into original color;
-//     	x = y->_right;								// c) Assign right child of y into x;
-// 		if (y->_prev == z)							// d) If y is a child of del, then set the parent of x as y;
-//         	x->_prev = y;
-// 		else										// e) Else transplant y with right child of y;
-// 		{
-//         	Transplant(y, y->_right);
-//         	y->_right = z->_right;
-//         	y->_right->_prev = y;
-// 		}
-// 		Transplant(z, y);							// f) Transplant del with y;
-//     	y->_left = z->_left;
-//     	y->_left->_prev = y;
-//     	y->_color = z->_color;						// g) Set the color of y with original color;
-// 	}
-// 	delNode(z);
-// 	if (y_original_color == BLACK)					// 6	- if the original color is BLACK then call deleteFix
-//       deleteFix(x);
-// 	return ++ret;
-// }
-
-// size_type erase( const Key& key )
-// {
-// 	iterator it = find(key);
-// 	if (it == end())
-// 		return 0;
-// 	erase(it);
-// 	return 1;
-// }
-
-
-
-
-
-
-
-// void deleteFix(Node *x)
-// {
-// 	Node	*s;
-// 	while (x != _root && x->_color == BLACK)									// 1	- loop for this algo, oppering while x is not root and color of x is black
-// 	{
-//     	if (x == x->_prev->_left) 												// 2	- If x ios the left child of it's parent :
-// 		{
-//         	s = x->_prev->_right;												// a) assign s to the uncle of x;
-//         	if (s->_color == RED)												// b) if the uncle is RED	------> CASE I
-// 			{
-//         		s->_color = BLACK;												// a- set color of right child of x's parent as black;
-//         		x->_prev->_color = RED;											// b- set the color of x prev as RED;
-//         		rotate_left(x->_prev);											// c- left rotate x parent;
-//         		s = x->_prev->_right;											// d- assign the right child of the parent of x in s;
-//         	}
-//         	if (s->_left->_color == BLACK && s->_right->_color == BLACK)		// c) if the color of both right n left child are BLACK  ------> CASE II
-// 			{
-//         		s->_color = RED;												// a- set color of s as RED;
-//           		x = x->_prev;													// b- assign parent of x to x;
-//         	}
-// 			else																// d) if color of right child of s is black ------> CASE III
-// 			{
-//         		if (s->_right->_color == BLACK)									
-// 				{
-//         			s->_left->_color = BLACK;									// a- set the color of left child of s as black;
-//             		s->_color = RED;											// b- set color of s as red; 
-//             		rotate_right(s);												// c- right rotate s;
-//             		s = x->_prev->_right;										// d- assign the right child of parent of x into s;
-//         		}																// e) If any of the cqse happend then ------> CASE IV
-//         		s->_color = x->_prev->_color;									// a- set color of s as the color of x's parent;
-//         		x->_prev->_color = BLACK;										// b- set the color of x's parent as black;
-//         		s->_right->_color = BLACK;										// c- set the color of the right child of s as black;
-//         		rotate_left(x->_prev);											// d- left rotate x parent;
-//         		x = _root;														// e- x became the root;
-//         	}
-//       	} 
-// 		else																	// 3	- Same code but for x is the rightchild of his parent;
-// 		{
-//     	    s = x->_prev->_left;
-//         	if (s->_color == RED)
-// 			{
-//         		s->_color = BLACK;
-//         		x->_prev->_color = RED;
-//         		rotate_right(x->_prev);
-//         		s = x->_prev->_left;
-// 			}
-//         	if (s->_right->_color == BLACK && s->_right->_color == BLACK)
-// 			{
-//         		s->_color = RED;
-//         		x = x->_prev;
-//         	}
-// 			else
-// 			{
-//           		if (s->_left->_color == BLACK)
-// 				{
-//     	    	    s->_right->_color = BLACK;
-//     	    	    s->_color = RED;
-//     	    	    rotate_left(s);
-//     	    	    s = x->_prev->_left;
-//     			}
-//           		s->_color = x->_prev->_color;
-//           		x->_prev->_color = BLACK;
-//           		s->_left->_color = BLACK;
-//           		rotate_right(x->_prev);
-//           		x = _root;
-//         }
-//       }
-//     }
-// 	x->_color = BLACK;															// 4	- Set color of root as black
-// }
-
-// void Transplant(Node *n, Node *child)
-// {			
-// 	if (!n->_prev)
-// 		_root = child;
-// 	else if (n == n->_prev->_left)
-// 		n->_prev->_left = child;
-// 	else
-// 		n->_prev->_right = child;
-// 	if (child)
-// 		child->_prev = n->_prev;
-// }
-
-// Node	*minimum(Node *node)		// search smallest key in a subtree from a node
-// {
-// 	while (node->_left != NULL)
-//       node = node->_left;
-//     return node;
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	private:
-
-Node *add(value_type value)
-{
-	if (find(value.first) == end())
-		return (NULL);
-	Node *n = creatNode(value);
-	insert(n);
-	return (n);
-}
-
-void insert(Node* n) 
+void insert(Node* n)	// insert the node n in the tree
 {
 	if (!_root) 
 	{
 		_root = n;
 		return;
 	}
-
 	Node *curr = _root;
 	while (1) 
 	{
@@ -1007,24 +693,37 @@ void insert(Node* n)
 		ajustTree(n);
 }
 
-Node	*creatNode(value_type value)
+Node	*creatNode(value_type value)	// allocate a node and return his pointeur
 {
 	Node *n = _alloc.allocate(1);
 	_alloc.construct(n, value);
 	return n;
 }
 
-void	delNode(Node *to_del)
+void	delNode(Node *to_del)		// delete and free a node
 {
 	_alloc.destroy(to_del);
 	_alloc.deallocate(to_del, 1);
 	to_del = NULL;
 }
 
-Node	*getParent(Node *current)
+void delTree(Node* x)				// delete and free the tree
+{
+	if (!x)
+		return;
+	while (x != 0)
+	{
+		delTree(x->_right);
+		Node *y = x->_left;
+		delNode(x);
+		x = y;
+	}
+}
+
+Node	*getParent(Node *current)	// return current's parrent
 {	return current->_prev;	}
 
-Node	*getGp(Node *current)
+Node	*getGp(Node *current)		// return the parent of current's parrent
 {
 	if (current->_prev == NULL)
 		return NULL;
@@ -1034,7 +733,7 @@ Node	*getGp(Node *current)
 		return current->_prev->_prev;
 }
 
-Node	*getUncle(Node* current)
+Node	*getUncle(Node* current)	// return the sibling of current
 {
 	Node *gp = getGp(current);
 	if (gp == NULL)
@@ -1046,7 +745,7 @@ Node	*getUncle(Node* current)
 		return gp->_right;
 }
 
-void	ajustTree(Node *n)		// ajust color and perform rotation
+void	ajustTree(Node *n)		// perform operations to maintain the properties of the red black tree	|	https://www.youtube.com/watch?v=qA02XWRTBdw&t=1233s
 {
 	Node *parent = getParent(n);
 	Node *uncle = getUncle(n);
@@ -1084,21 +783,14 @@ void	ajustTree(Node *n)		// ajust color and perform rotation
 			ajustTree(gp);
 		}
 		if (parent && gp && n == parent->_right && parent == gp->_right)
-		{
 			rotate_left(parent);
-//			ajustTree(gp);
-		}
 		if (parent && n == parent->_left && gp && parent == gp->_left)
-		{
 			rotate_right(parent);
-//			ajustTree(gp);
-		}
 	}
 	return ;
 }
 
-
-void rotate_left(Node *x)
+void rotate_left(Node *x)	// when x is on the right
 {
     Node *y = x->_right;
     x->_right = y->_left;
@@ -1113,133 +805,27 @@ void rotate_left(Node *x)
     	x->_prev->_right = y;
     y->_left = x;
     x->_prev = y;
-  }
-
-void rotate_right(Node *n)
-{
-	if (!n || !n->_left)
-		return;
-	Node *lc = n->_left ;
-	n->_left = lc->_right;
-	if (n->_left)
-		n->_left->_prev = n;
-	
-	if (!n->_prev)
-		_root = lc;
-	else if (n == n->_prev->_left)
-		n->_prev->_left = lc;
-	else
-		n->_prev->_right = lc;		
-	lc->_prev = n->_prev ;
-	n->_prev = lc;
-	lc->_right = n;
 }
 
-
-// void rotate_right(Node *x)
-// {
-//     Node *y = x->_left;
-//     x->_left = y->_right;
-//     if (y->_right != NULL)
-//     	y->_right->_prev = x;
-//     y->_prev = x->_prev;
-//     if (x->_prev == NULL)
-// 		_root = y;
-//     else if (x == x->_prev->_right)
-//     	x->_prev->_right = y;
-//     else
-//       x->_prev->_left = y;
-//     y->_right = x;
-//     x->_prev = y;
-// }
-
-
-// void rotate_left(Node* parent)
-// 	{
-// 		Node* subR = parent->_right;
-// 		Node* subRL = subR->_left;
-// 		Node* parentParent = parent->_prev;
-
-// 		parent->_right = subRL;
-// 		subR->_left = parent;
-
-// 		parent->_prev = subR;
-
-// 		if (subRL)
-// 			subRL->_prev = parent;
-// 		if (_root == parent)
-// 		{
-// 			_root = subR;
-// 			_root->_prev = NULL;
-// 		}
-
-// 		else
-// 		{
-
-// 			if (parentParent->_left == parent)
-// 				parentParent->_left = subR;
-// 			else
-// 				parentParent->_right = subR;
-// 			subR->_prev = parentParent;
-// 		}
-// 	}
-// 	void rotate_right(Node* parent)
-// 	{
-// 		Node* subL = parent->_left;
-// 		Node* subLR = subL->_right;
-// 		Node* parentParent = parent->_prev;
-
-// 		parent->_left = subLR;
-// 		subL->_right = parent;
-
-// 		if (subLR)
-// 			subLR->_prev = parent;
-// 		parent->_prev = subL;
-
-// 		if (_root == parent)
-// 		{
-// 			_root = subL;
-// 			_root->_prev = NULL;
-// 		}
-
-// 		else
-// 		{
-
-// 			if (parentParent->_left == parent)
-// 				parentParent->_left = subL;
-// 			else
-
-// 				parentParent->_right = subL;
-
-// 			subL->_prev = parentParent;
-// 		}
-// 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void rotate_right(Node *x)	// when x is o the left
+{
+	if (!x || !x->_left)
+		return;
+	Node *y = x->_left ;
+	x->_left = y->_right;
+	if (x->_left)
+		x->_left->_prev = x;
+	
+	if (!x->_prev)
+		_root = y;
+	else if (x == x->_prev->_left)
+		x->_prev->_left = y;
+	else
+		x->_prev->_right = y;		
+	y->_prev = x->_prev ;
+	x->_prev = y;
+	y->_right = x;
+}
 
 
 
