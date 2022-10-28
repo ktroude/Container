@@ -4,8 +4,8 @@
 #include <list>
 
 #define _pair TESTED_NAMESPACE::pair
-#define TESTED_NAMESPACE ft
-// #define TESTED_NAMESPACE std
+// #define TESTED_NAMESPACE ft
+#define TESTED_NAMESPACE std
 
 template <typename T>
 std::string	printPair(const T &iterator, bool nl = true, std::ostream &o = std::cout)
@@ -87,41 +87,46 @@ std::ostream	&operator<<(std::ostream &o, foo<T> const &bar) {
 
 
 
-#define T1 int
+#define T1 char
 #define T2 int
 typedef _pair<const T1, T2> T3;
 
+template <class MAP>
+void	cmp(const MAP &lhs, const MAP &rhs)
+{
+	static int i = 0;
+
+	std::cout << "############### [" << i++ << "] ###############"  << std::endl;
+	std::cout << "eq: " << (lhs == rhs) << " | ne: " << (lhs != rhs) << std::endl;
+	std::cout << "lt: " << (lhs <  rhs) << " | le: " << (lhs <= rhs) << std::endl;
+	std::cout << "gt: " << (lhs >  rhs) << " | ge: " << (lhs >= rhs) << std::endl;
+}
+
 int		main(void)
 {
-	std::list<T3> lst;
-	unsigned int lst_size = 7;
-	for (unsigned int i = 0; i < lst_size; ++i)
-		lst.push_back(T3(lst_size - i, i));
+	TESTED_NAMESPACE::map<T1, T2> mp1;
+	TESTED_NAMESPACE::map<T1, T2> mp2;
 
-	TESTED_NAMESPACE::map<T1, T2> mp(lst.begin(), lst.end());
-	TESTED_NAMESPACE::map<T1, T2>::iterator it = mp.begin(), ite = mp.end();
+	mp1['a'] = 2; mp1['b'] = 3; mp1['c'] = 4; mp1['d'] = 5;
+	mp2['a'] = 2; mp2['b'] = 3; mp2['c'] = 4; mp2['d'] = 5;
 
-	TESTED_NAMESPACE::map<T1, T2> mp_range(it, --(--ite));
-	for (int i = 0; it != ite; ++it)
-		it->second = ++i * 5;
+	cmp(mp1, mp1); // 0
+	cmp(mp1, mp2); // 1
 
-	it = mp.begin(); ite = --(--mp.end());
-	TESTED_NAMESPACE::map<T1, T2> mp_copy(mp);
-	for (int i = 0; it != ite; ++it)
-		it->second = ++i * 7;
+	mp2['e'] = 6; mp2['f'] = 7; mp2['h'] = 8; mp2['h'] = 9;
 
-	std::cout << "\t-- PART ONE --" << std::endl;
-	printSize(mp);
-	printSize(mp_range);
-	printSize(mp_copy);
+	cmp(mp1, mp2); // 2
+	cmp(mp2, mp1); // 3
 
-	mp = mp_copy;
-	mp_copy = mp_range;
-	mp_range.clear();
+	(++(++mp1.begin()))->second = 42;
 
-	std::cout << "\t-- PART TWO --" << std::endl;
-	printSize(mp);
-	printSize(mp_range);
-	printSize(mp_copy);
+	cmp(mp1, mp2); // 4
+	cmp(mp2, mp1); // 5
+
+	swap(mp1, mp2);
+
+	cmp(mp1, mp2); // 6
+	cmp(mp2, mp1); // 7
+
 	return (0);
 }

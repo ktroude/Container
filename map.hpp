@@ -1,6 +1,7 @@
 #include <functional>
 #include "./iterator/bidirectional_iterator.hpp"
 #include "./iterator/pair.hpp"
+#include "./iterator/cmp.hpp"
 #include <iostream>
 
 namespace ft
@@ -835,6 +836,43 @@ void rotate_right(Node *x)	// when x is o the left
 };
 
 
+template< class Key, class T, class Compare, class Alloc >
+inline bool operator==( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{
+	typename ft::map<Key,T,Compare,Alloc>::const_iterator it1 = lhs.begin(), it2 = rhs.begin();
+	while (it1 != lhs.end() && it2 != rhs.end())
+	{
+		if (it1._node == NULL || it2._node == NULL)
+			return false;
+		if (it1->first != it2->first || it1->second != it2->second)
+			return false;
+		it1++;
+		it2++;
+	}
+	if (it1 == lhs.end() && it2 == rhs.end())
+		return true;
+	return false;
+}
+
+template< class Key, class T, class Compare, class Alloc >
+inline bool operator!=( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{	return !(lhs == rhs);	}
+
+template< class Key, class T, class Compare, class Alloc >
+inline bool operator<( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{ return (ft::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end())); }
+
+template< class Key, class T, class Compare, class Alloc >
+bool operator<=( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{	return (lhs == rhs || lhs < rhs) ? true : false;	}
+
+template< class Key, class T, class Compare, class Alloc >
+bool operator>( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{	return !(lhs <= rhs);	}
+
+template< class Key, class T, class Compare, class Alloc >
+bool operator>=( const ft::map<Key,T,Compare,Alloc>& lhs, const ft::map<Key,T,Compare,Alloc>& rhs )
+{	return (lhs == rhs || lhs > rhs) ? true : false;	}
 
 
 } //namespace ft
