@@ -3,6 +3,7 @@
 #include "./iterator/pair.hpp"
 #include "./iterator/cmp.hpp"
 #include <iostream>
+#include "./iterator/iterator.hpp"
 
 namespace ft
 {
@@ -35,8 +36,7 @@ struct RBTreeNode
 
 
 template<class T>    // take pointer | 
-struct TreeIterator
-{
+struct TreeIterator : public ft::iterator<ft::bidirectional_iterator_tag, T>{
     public:
 
 	typedef T					value_type;
@@ -53,7 +53,7 @@ struct TreeIterator
 TreeIterator(Node* node) :_node(node), _max(NULL), _min(NULL) {}
 TreeIterator(Node* node, Node *max) :_node(node), _max(max), _min(NULL) {}
 TreeIterator(Node* node, Node *max, Node *min) :_node(node), _max(max), _min(min) {}
-TreeIterator() : _node(NULL) {}
+TreeIterator() : _node(NULL), _max(NULL), _min(NULL) {}
 TreeIterator(const iterator &it) :  _node(it._node), _max(it._max), _min(it._min) {}
 
 operator TreeIterator<const T> () const   // cast iterator -> const iterator
@@ -61,7 +61,11 @@ operator TreeIterator<const T> () const   // cast iterator -> const iterator
 
 iterator &operator=(const iterator& it)
 {	if (*this != it)
+	{
 		_node = it._node;
+		_max = it._max;
+		_min = it._min;
+	}
 	return *this;	}
 
 reference operator*() const
@@ -78,20 +82,34 @@ bool  operator !=(const iterator& it) const
 
 iterator& operator++()
 {
-    Increment();
+	if (_max)
+	{
+		_node = _max;
+		_max = NULL;
+		return *this;
+	}
+	else 
+    	Increment();
     return *this;
 }
 
 iterator operator++(int)
 {
 	iterator tmp(_node);
-    Increment();
+	if (_max)
+		{
+		_node = _max;
+		_max = NULL;
+		return tmp;
+	}
+	else
+    	Increment();
     return tmp;
 }
 
 iterator& operator--()
 {
-	if (_node == NULL && _max)
+	if (_max)
 	{
 		_node = _max;
 		_max = NULL;
@@ -105,10 +123,11 @@ iterator& operator--()
 iterator operator--(int)
 {
 	iterator tmp = TreeIterator(this->_node);
-    if (_node == NULL && _max)
+    if (_max)
 	{
 		_node = _max;
 		_max = NULL;
+		return tmp;
 	}
 	else
     	Decrement();
@@ -292,20 +311,35 @@ iterator end() // Most right node + 1 (ret is a security for things like "-- map
 
 const_iterator end() const
 {
-	return const_iterator(NULL);
-// 	Node *ret = _root;
-// 	while (ret && ret->_right)
-// 		ret = ret->_right;
-// 	const_iterator	it;
-// 	it._node = ret;
-// 	return ++it;
+	Node *right = _root;
+	while (right && right->_right)
+		right = right->_right;
+	const_Node *n = reinterpret_cast<const_Node *>(right);
+	return const_iterator(NULL, n);
 }
 
-reverse_iterator rbegin();
-const_reverse_iterator rbegin() const;
+reverse_iterator rbegin()
+{	
+	Node *ret = _root;
+	while (ret && ret->_right)
+		ret = ret->_right;
+	iterator it(NULL, ret);
+	return reverse_iterator(iterator(ret, ret));
+}
 
-reverse_iterator rend();
-const_reverse_iterator rend() const;
+const_reverse_iterator rbegin() const
+{	return reverse_iterator(end());	}
+
+reverse_iterator rend()
+{		Node* left = _root;
+	while (left && left->_left)
+		left = left->_left;
+	iterator it(left);	
+	return reverse_iterator(it);
+}
+
+const_reverse_iterator rend() const
+{	return reverse_iterator(begin());	}
 
 bool empty() const
 {	return (_root ? false : true);	}
@@ -481,7 +515,7 @@ iterator erase( iterator first, iterator last )
 size_type erase( const Key& key )
 {
 	iterator pos = find(key);
-	if (pos == end())
+	if (pos._node == end()._node)
 		return 0;
 	erase(pos);
 	return 1;

@@ -79,15 +79,15 @@ typedef typename traits::difference_type    difference_type;
 typedef typename traits::pointer            pointer;
     
     
-    protected:
+    public:
 
 Iterator    current;
 
     public:
 
-reverse_iterator() : current(NULL) { }
-explicit reverse_iterator( iterator_type x ) : current(x) { }                   // construire a partir d un type    |      explicit keyword --> empeche le compilateur de faire des conversions implicites;
-template <class U> reverse_iterator(const reverse_iterator<U>& other) : current(other.base()){ }        // construire a partir d un autre iterateur (copie);
+reverse_iterator() {current.operator=(NULL);}
+explicit reverse_iterator( iterator_type x ) {current.operator=(x);}                   // construire a partir d un type    |      explicit keyword --> empeche le compilateur de faire des conversions implicites;
+template <class U> reverse_iterator(const reverse_iterator<U>& other) {current = other.base();}        // construire a partir d un autre iterateur (copie);
 iterator_type base() const { return current; }        // get_current();
 
 operator reverse_iterator<const Iterator>() const  
@@ -149,7 +149,7 @@ reverse_iterator &operator-=(difference_type n)
 
 template <class Iterator1, class Iterator2>
 bool operator==( const ft::reverse_iterator <Iterator1>& lhs, const ft::reverse_iterator <Iterator2>& rhs )
-{   return  (*lhs.base() == *rhs.base());   }
+{   return  (lhs.base() == rhs.base());   }
 
 template< class Iterator1, class Iterator2 >
 bool operator!=( const ft::reverse_iterator<Iterator1>& lhs, const ft::reverse_iterator<Iterator2>& rhs )
