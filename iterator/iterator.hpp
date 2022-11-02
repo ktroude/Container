@@ -85,9 +85,9 @@ Iterator    current;
 
     public:
 
-reverse_iterator() {current.operator=(NULL);}
-explicit reverse_iterator( iterator_type x ) {current.operator=(x);}                   // construire a partir d un type    |      explicit keyword --> empeche le compilateur de faire des conversions implicites;
-template <class U> reverse_iterator(const reverse_iterator<U>& other) {current = other.base();}        // construire a partir d un autre iterateur (copie);
+reverse_iterator() : current() {}
+explicit reverse_iterator( iterator_type x ) : current(x) {}                   // construire a partir d un type    |      explicit keyword --> empeche le compilateur de faire des conversions implicites;
+template <class U> reverse_iterator(const reverse_iterator<U>& other) : current(other.base()) {}        // construire a partir d un autre iterateur (copie);
 iterator_type base() const { return current; }        // get_current();
 
 operator reverse_iterator<const Iterator>() const  

@@ -139,10 +139,6 @@ int		main(void)
 	printPair(it.base());
 
 	it = mp.rbegin(); ite = mp.rend();
-	// printf("it._node == %p\n", it.current._node);
-	// printf("it._max == %p\n", it.current._max);
-	// printf("it._min == %p\n\n\n", it.current._min);
-	// std::cout << it.operator*().first << std::endl;
 	while (it != ite)
 		std::cout << "[rev] " << printPair(it++, false) << std::endl;
 	printReverse(mp);
