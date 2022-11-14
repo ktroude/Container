@@ -61,7 +61,7 @@ difference_type  distance( InputIt first, InputIt last )
 
 // constructor
 
-vector() : _begin(NULL), _end(NULL), _end_capacity(NULL) {_alloc.allocate(1);}    // alloacte(1 ou 0) ???
+vector() : _begin(NULL), _end(NULL), _end_capacity(NULL) {}    // alloacte(1 ou 0) ???
 explicit vector( const Allocator& alloc ) : _alloc(alloc), _begin(NULL), _end(NULL), _end_capacity(NULL) {}
 explicit vector( size_type count, const T& value = T(), const Allocator& alloc = Allocator()) : _alloc(alloc)
 {   this->_begin = this->_alloc.allocate(count);
@@ -237,25 +237,31 @@ size_type size() const
 size_type max_size() const
 {   return this->_alloc.max_size();   }
 
-// reserve()    -   increase the capacity of the vector
-void reserve( size_type new_cap )
+  void reserve(size_type n)
 {
-    if (new_cap > max_size())
-        throw std::length_error("max size reached.\n");
-    if (new_cap <= size())
-        return ;
-    pointer b = this->_begin;
-    pointer e = this->_end;
-    size_type c = this->capacity();
-    this->_begin = this->_alloc.allocate(new_cap);
-    this->_end= this->_begin;
-    this->_end_capacity = this->_begin + new_cap;
-    for (pointer p = b; p != e; p++)
-        this->_alloc.construct(_end++, *p);
-    while (b != e)
-        this->_alloc.destroy(--e);
-    this->_alloc.deallocate(b, c);
-}
+            if (n > this->max_size())
+                {throw std::out_of_range("ft::vector");}
+            if (this->capacity() >= n)
+                return;
+            
+            pointer prev_begin = this->_begin;
+            pointer prev_end = this->_end;
+            size_type prev_capacity = this->capacity();
+
+            this->_begin = this->_alloc.allocate(n);
+            this->_end_capacity = this->_begin + n;
+            this->_end = this->_begin;
+
+            for (pointer target = prev_begin; target != prev_end; ++target)
+                this->_alloc.construct(this->_end++, *target);
+            for (size_type len = prev_end - prev_begin; len > 0; --len)
+                this->_alloc.destroy(--prev_end);
+            this->_alloc.deallocate(prev_begin, prev_capacity);
+        };
+
+
+
+
 
 // capacity()   -   returns the number of elements that the container has currently allocated space for.
 size_type capacity() const
@@ -401,34 +407,45 @@ void pop();
 void pop_back()
 {   _alloc.destroy(--_end); }
 
-// resize() -   changes the number of elements stored
-void resize( size_type count )
-{   if (count < this->size())
-    {
-        while (this->size() != count)
-            _alloc.destroy(--_end);
-        _end_capacity = _begin + count;
-    }
-    else if (count > this->size())
-    {
-        reserve(count);
-        while (_end != _end_capacity)
-            _alloc.construct(_end++, 0);
-    }
-}
 
-void resize( size_type count, T value)
-{   if (count < this->size())
+void resize (size_type n, value_type val = value_type())
+{
+	pointer	oldstart			= this->_begin;
+	size_type oldsize			= this->size();
+	size_type oldcapacity		= this->capacity();
+
+    if (n < (this->size()))
     {
-        while (this->size() != count)
-            _alloc.destroy(--_end);
-        _end_capacity = _begin + count;
+        for ( pointer it = this->_begin + n ; it != this->_end ; it++ )
+            this->_alloc.destroy(it);
+        this->_end		= this->_begin + n;
+        return ;
     }
-    else if (count > this->size())
+    else if (n > (capacity()))
     {
-        reserve(count);
-        while (_end != _end_capacity)
-            _alloc.construct(_end++, value);
+        size_t _capacity = capacity();
+        if (n >= SIZE_MAX)
+            throw std::length_error("vector");
+        n < SIZE_MAX / 2 ? _capacity *= 2 : _capacity = SIZE_MAX;
+        if (_capacity == 0)
+            _capacity = 1;
+        if (n > _capacity)
+            _capacity = n;
+        this->_begin		= _alloc.allocate(_capacity);
+        this->_end		= _begin + n;
+
+        size_type i = 0;
+        for ( ; i < oldsize ; i++ ) {
+            _alloc.construct(_begin + i, oldstart[i]);
+        }
+        for (size_type j = 0; j != i ; j++) {
+            _alloc.destroy(oldstart + j);
+        }
+        _alloc.deallocate(oldstart, oldcapacity);
+    }
+    this->_end = _begin + n;
+    for (pointer it = _begin + oldsize ; it != _end ; it++) {
+            _alloc.construct(it, val);
     }
 }
 

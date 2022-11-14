@@ -31,26 +31,24 @@ struct RBTreeNode
 	RBTreeNode *min() { return ((!_left) ? this : _left->min()); }
 	RBTreeNode *max() { return ((!_right) ? this : _right->max()); }
 
-	RBTreeNode *next() {
+	RBTreeNode *next() 
+	{
 		if (_right)
 			return (_right->min());
-
 		if (_prev && this == _prev->_left)
 			return (_prev);
-		
 		RBTreeNode *next = this;
 		while (next && next->_prev && next == next->_prev->_right)
 			next = next->_prev;
 		return ((next) ? next->_prev : NULL);
 	}
 
-	RBTreeNode *prev() {
+	RBTreeNode *prev()
+	{
 		if (_left)
 			return (_left->max());
-
 		if(_prev && this == _prev->_right)
 			return (_prev);
-
 		RBTreeNode *prev= this;
 		while (prev && prev->_prev && prev == prev->_prev->_left)
 			prev = prev->_prev;
@@ -132,11 +130,11 @@ class map
 {
     public:
 
-typedef Key										key_type;				// the key (obviously)
-typedef T										mapped_type;			// value associated to key
+typedef Key										key_type;				
+typedef T										mapped_type;
 typedef ft::pair<const Key, T>					value_type;
 typedef const ft::pair<const Key, T>			const_value_type;
-typedef Compare									key_compare;			// --> ?? useless
+typedef Compare									key_compare;		
 
 typedef size_t 									size_type;
 typedef std::ptrdiff_t 							difference_type;
@@ -200,7 +198,7 @@ allocator_type get_allocator() const
 
 T& at( const Key& key )
 {	for (iterator it = begin(); it != end(); it++)
-		if (it->_node->_data.first == key)
+		if (it->_node && it->_node->_data.first == key)
 			return it->_node->_data.second;
 	throw std::out_of_range("key not found\n");
 	return _root->_data.second;
@@ -271,6 +269,7 @@ const_iterator find(const Key& key) const {
 
 void swap( map& other )
 {
+
 	Node			*save = _root;
 	allocator_type	alloc_save = _alloc;
 	value_compare	comp_save = _comp;
@@ -322,7 +321,7 @@ ft::pair<iterator, bool> insert( const value_type& value )
 	while (current) 
 	{
 		parent = current;
-		if (_comp(current->_data, value))//value.first > current->_data.first)
+		if (_comp(current->_data, value))
 			current = current->_right;
 		else if (_comp(value, current->_data))
 			current = current->_left;
@@ -449,9 +448,6 @@ size_type erase( const Key& key )
 	erase(pos);
 	return 1;
 }
-
-	
-
 
 
 	private:
@@ -667,6 +663,7 @@ Node	*creatNode(value_type value)	// allocate a node and return his pointeur
 	return n;
 }
 
+
 void	delNode(Node *to_del)		// delete and free a node
 {
 	_alloc.destroy(to_del);
@@ -712,67 +709,101 @@ Node	*getUncle(Node* current)	// return the sibling of current
 		return gp->_right;
 }
 
-void	ajustTree(Node *n)		// perform operations to maintain the properties of the red black tree	|	https://www.youtube.com/watch?v=qA02XWRTBdw&t=1233s
+void ajustTree(Node *n)				// perform operations to maintain the properties of the red black tree	|	https://www.youtube.com/watch?v=qA02XWRTBdw&t=1233s
 {
-	Node *parent = getParent(n);
-	Node *uncle = getUncle(n);
+	Node *p = n->_prev;
+	if (!p)
+	{
+		n->_color = BLACK;
+		return ;
+	}
+	if (p->_color == BLACK)
+		return;
+
+	Node *u = getUncle(n);
 	Node *gp = getGp(n);
-	if (_root &&  _root->_color == RED)
-		_root->_color = BLACK;
-	if (parent->_color == BLACK)
-		return	;
-	if (parent->_color == RED && uncle && uncle->_color == RED)
+	if (p->_color == RED && (u && u->_color == RED))
 	{
-		parent->_color = BLACK;
-		uncle->_color = BLACK;
-		while (gp != _root)
-		{
-			if (gp->_color == RED)
-				gp->_color = BLACK;
-			if (gp->_color == BLACK)
-				gp->_color = RED;
-			parent = gp;
-			gp = parent->_prev;
-		}
+		p->_color = BLACK;
+		u->_color = BLACK;
+		gp->_color = RED;
+		ajustTree(gp);
+		return;
 	}
-	if (parent && parent->_color == RED && (uncle == NULL || uncle->_color == BLACK))
+
+	if (gp && p == gp->_left)
 	{
-		if (parent && n == parent->_left && gp && parent == gp->_right)
+		if (n == p->_right)
 		{
-			rotate_right(parent);
-			rotate_left(n);
-			ajustTree(gp);
+			n = p;
+			rotate_left(p);
 		}
-		if (parent && n == parent->_right && gp && parent == gp->_left)
+		p->_color = BLACK;
+		if (gp)
 		{
-			rotate_left(parent);
-			rotate_right(n);
-			ajustTree(gp);
+			gp->_color = RED;
+			rotate_right(gp);
 		}
-		if (parent && gp && n == parent->_right && parent == gp->_right)
-			rotate_left(parent);
-		if (parent && n == parent->_left && gp && parent == gp->_left)
-			rotate_right(parent);
+		return;
+	} 
+	else 
+	{
+		if (n == p->_left) 
+		{
+			n = p;
+			rotate_right(p);
+		}
+		p->_color = BLACK;
+		if (gp) 
+		{
+			gp->_color = RED;
+			rotate_left(gp);
+		}
+		return;
 	}
-	return ;
 }
 
-void rotate_left(Node *x)	// when x is on the right
-{
-    Node *y = x->_right;
-    x->_right = y->_left;
-    if (y->_left != NULL)
-    	y->_left->_prev = x;
-    y->_prev = x->_prev;
-    if (x->_prev == NULL)
-    	_root = y;
-    else if (x == x->_prev->_left)
-    	x->_prev->_left = y;
-    else
-    	x->_prev->_right = y;
-    y->_left = x;
-    x->_prev = y;
-}
+
+// void rotate_left(Node *x)	// when x is on the right
+// {
+//     Node *y = x->_right;
+//     x->_right = y->_left;
+//     if (y->_left != NULL)
+//     	y->_left->_prev = x;
+//     y->_prev = x->_prev;
+//     if (x->_prev == NULL)
+//     	_root = y;
+//     else if (x == x->_prev->_left)
+//     	x->_prev->_left = y;
+//     else
+//     	x->_prev->_right = y;
+//     y->_left = x;
+//     x->_prev = y;
+// }
+
+void rotate_left(Node *n)
+		{
+			if (!n || !n->_right)
+				return;
+
+			Node *rc = n->_right ;
+			n->_right = rc->_left;
+
+			if (n->_right)
+				n->_right->_prev = n;
+			
+			if (!n->_prev)
+				_root = rc;
+			else if (n == n->_prev->_left)
+				n->_prev->_left = rc;
+			else
+				n->_prev->_right = rc;	
+
+			rc->_prev = n->_prev ;
+			n->_prev = rc;
+			rc->_left = n;
+		}
+
 
 void rotate_right(Node *x)	// when x is o the left
 {
