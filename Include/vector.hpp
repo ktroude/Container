@@ -55,16 +55,14 @@ difference_type  distance( InputIt first, InputIt last )
     for (; first != last; first++)
         n++;
     first = save;
-    return n;   }
-
-//pointer allocate(size_type n) 
-//{ return _alloc.allocate(n); }
+    return n;
+}
 
     public:
 
 // constructor
 
-vector() : _begin(NULL), _end(NULL), _end_capacity(NULL) {_alloc.allocate(1);}    // alloacte(1 ou 0) ???
+vector() : _begin(NULL), _end(NULL), _end_capacity(NULL) {}    // alloacte(1 ou 0) ???
 explicit vector( const Allocator& alloc ) : _alloc(alloc), _begin(NULL), _end(NULL), _end_capacity(NULL) {}
 explicit vector( size_type count, const T& value = T(), const Allocator& alloc = Allocator()) : _alloc(alloc)
 {   this->_begin = this->_alloc.allocate(count);
@@ -74,14 +72,6 @@ explicit vector( size_type count, const T& value = T(), const Allocator& alloc =
         this->_alloc.construct(_end++, value);    // malloc un tableau de taille begin-end, incremente end pour qu il pointe apres le tableau (iterator end() tmtc)
 }
 
-// explicit vector( size_type count, const T& value)
-// {   this->begin = this->_alloc.allocate(count);
-//     this->_end_capacity = this->begin + count;
-//     this->_end = this->_begin;
-//     for (; count > 0; count--)
-//         this->_alloc.construct(_end++, value);
-// }
-
 template< class InputIt >
 vector( InputIt first, InputIt last, const Allocator& alloc = Allocator(), typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL) : _alloc(alloc) 
 {   
@@ -90,7 +80,8 @@ vector( InputIt first, InputIt last, const Allocator& alloc = Allocator(), typen
     this->_end_capacity = this->_begin + dif;
     this->_end= this->_begin;
     for (; dif > 0; dif--) 
-        this->_alloc.construct(_end++, *(first++)); }
+        this->_alloc.construct(_end++, *(first++));
+}
 
 vector( const vector& src) : _alloc(src._alloc)
 {
@@ -110,21 +101,10 @@ vector( const vector& src) : _alloc(src._alloc)
     this->_alloc.deallocate(this->_begin, this->capacity());
 }
 
-vector& operator=( const vector& other )
-{   //if (this != &other)
-    //{
-        this->clear();
-        this->_alloc.deallocate(this->_begin, this->capacity());
-        this->_begin = this->_end= this->_end_capacity = NULL;
-        const_iterator it = other.begin();
-        size_type s = other.capacity();
-        this->_begin = this->_alloc.allocate(other.capacity());
-        this->_end_capacity = this->_begin + s;
-        this->_end = this->_begin;
-        while (s--)
-            this->_alloc.construct(_end++, *it++);
-
-//    }
+vector& operator=(const vector& x)
+{
+    this->clear();
+    this->insert(this->_begin, x.begin(), x.end());
     return *this;
 }
 
@@ -144,7 +124,6 @@ void assign( size_type count, const T& value )
         while (count--) 
             this->_alloc.construct(_end++, value);
     }
-
 }
 
 template <class InputIt>
@@ -156,7 +135,7 @@ void assign( InputIt first, InputIt last, typename ft::enable_if<!ft::is_integra
         this->_end_capacity = this->_begin + n;
         this->_end = this->_begin;
     } else 
-    { this->clear(); }
+        this->clear();
     while (n--)
         this->_alloc.construct(this->_end++, *first++);
 }
@@ -171,17 +150,23 @@ allocator_type get_allocator() const
 
 // at() -   access specified element with bounds checking (throw exception)
 reference at( size_type pos )
-{    if (pos >= size())
+{    
+    if (pos >= size())
         throw std::out_of_range("out of range\n");
-    return this->_begin[pos]; }
+    return this->_begin[pos];
+}
+
 const_reference at( size_type pos ) const
-{    if (pos >= size())
+{    
+    if (pos >= size())
         throw std::out_of_range("out of range\n");
-    return this->_begin[pos]; }
+    return this->_begin[pos];
+}
 
 // operator []  -   access specified element
 reference operator[]( size_type pos )
 {   return  this->_begin[pos];}
+
 const_reference operator[]( size_type pos ) const
 {   return  this->_begin[pos];}
 
@@ -211,8 +196,10 @@ const T* data() const
 iterator begin()
 {   return this->_begin;    }    
 const_iterator begin() const
-{   const_iterator  it(this->_begin);
-   return it; }
+{   
+    const_iterator  it(this->_begin);
+    return it; 
+}
 
 // end()    -   returns an iterator to the end
 iterator end()
@@ -252,11 +239,10 @@ size_type size() const
 size_type max_size() const
 {   return this->_alloc.max_size();   }
 
-// reserve()    -   increase the capacity of the vector
 void reserve(size_type n)
 {
     if (n > this->max_size())
-        {throw std::out_of_range("max size reached");}
+        {throw std::out_of_range("ft::vector");}
     if (this->capacity() >= n)
         return;
     
@@ -275,15 +261,9 @@ void reserve(size_type n)
     this->_alloc.deallocate(prev_start, prev_capacity);
 }
 
-
-
 // capacity()   -   returns the number of elements that the container has currently allocated space for.
 size_type capacity() const
-{   size_type   n = 0;
-    for (const_iterator it = this->begin(); it != this->end(); it++)
-        n++;
-    return n;   }
-
+{   return (this->_end_capacity - this->_begin);    }
 
 /*  Modifiers   */
 
@@ -420,41 +400,50 @@ void push_back( const T& value )
         reserve(capacity() * 2);
     this->_alloc.construct(_end++, value);
 }
-
+void pop();
 // pop_back()   -   removes the last element
 void pop_back()
+{   _alloc.destroy(--_end); }
+
+
+void resize (size_type n, value_type val = value_type())
 {
-    _alloc.destroy(--_end);
-}
+	pointer	oldstart			= this->_begin;
+	size_type oldsize			= this->size();
+	size_type oldcapacity		= this->capacity();
 
-// resize() -   changes the number of elements stored
-void resize( size_type count )
-{   if (count < this->size())
+    if (n < (this->size()))
     {
-        while (this->size() != count)
-            _alloc.destroy(--_end);
-        _end_capacity = _begin + count;
+        for ( pointer it = this->_begin + n ; it != this->_end ; it++ )
+            this->_alloc.destroy(it);
+        this->_end		= this->_begin + n;
+        return ;
     }
-    else if (count > this->size())
+    else if (n > (capacity()))
     {
-        reserve(count);
-        while (_end != _end_capacity)
-            _alloc.construct(_end++, 0);
-    }
-}
+        size_t _capacity = capacity();
+        if (n >= SIZE_MAX)
+            throw std::length_error("vector");
+        n < SIZE_MAX / 2 ? _capacity *= 2 : _capacity = SIZE_MAX;
+        if (_capacity == 0)
+            _capacity = 1;
+        if (n > _capacity)
+            _capacity = n;
+        this->_begin		= _alloc.allocate(_capacity);
+        this->_end		= _begin + n;
 
-void resize( size_type count, T value)
-{   if (count < this->size())
-    {
-        while (this->size() != count)
-            _alloc.destroy(--_end);
-        _end_capacity = _begin + count;
+        size_type i = 0;
+        for ( ; i < oldsize ; i++ ) {
+            _alloc.construct(_begin + i, oldstart[i]);
+        }
+        for (size_type j = 0; j != i ; j++) {
+            _alloc.destroy(oldstart + j);
+        }
+        _alloc.deallocate(oldstart, oldcapacity);
     }
-    else if (count > this->size())
-    {
-        reserve(count);
-        while (_end != _end_capacity)
-            _alloc.construct(_end++, value);
+    this->_end = _begin + n;
+    for (pointer it = _begin + oldsize ; it != _end ; it++) {
+            _alloc.construct(it, val);
     }
 }
 
@@ -466,14 +455,16 @@ void swap( vector& other )
     pointer         end_s = this->_end;
     pointer         end_capacity_s = this->_end_capacity;
     allocator_type  alloc_s = this->_alloc;
-    this->_alloc = other._alloc;
-    this->_end = other._end;
+    
     this->_begin = other._begin;
+    this->_end = other._end;
     this->_end_capacity = other._end_capacity;
-    other._alloc = alloc_s;
-    other._end = end_s;
+    this->_alloc = other._alloc;
+    
     other._begin = begin_s;
+    other._end = end_s;
     other._end_capacity = end_capacity_s;
+    other._alloc = alloc_s;
 }
 
 };
@@ -511,6 +502,6 @@ bool operator>=(const ft::vector<T>& x, const ft::vector<T>& y)
 
 template <typename T>
 bool operator<=(const ft::vector<T>& x, const ft::vector<T>& y)
-{   return !(y < x);    }
+{   return !(x > y);    }
 
 }
