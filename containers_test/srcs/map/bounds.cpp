@@ -9,15 +9,6 @@ typedef TESTED_NAMESPACE::map<T1, T2>::const_iterator ft_const_iterator;
 
 static int iter = 0;
 
-template <typename T>
-std::string	printPair(const T &iterator, bool nl = true, std::ostream &o = std::cout)
-{
-	o << "key: " << iterator->first << " | value: " << iterator->second;
-	if (nl)
-		o << std::endl;
-	return ("");
-}
-
 template <typename MAP>
 void	ft_bound(MAP &mp, const T1 &param)
 {

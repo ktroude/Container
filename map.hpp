@@ -177,14 +177,12 @@ explicit map( const Compare& comp, const Allocator& alloc = Allocator() ) : _roo
 
 template< class InputIt >
 explicit map( InputIt first, InputIt last,const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : _root(NULL), _alloc(alloc), _comp(comp)
-{	while (first != last)
-		insert(*first++);	}
+{	insert(first, last);	}
 
 map( const map& other ) : _root(NULL), _alloc(other._alloc), _comp(other._comp)
-{	for (const_iterator it = other.begin(); it != other.end(); it++)
-		insert(it._node->_data);	}
+{	insert(other.begin(), other.end());	}
 
-~map(){}
+~map() {clear();}
 
 map& operator=(const map& x)
 {
@@ -197,9 +195,9 @@ allocator_type get_allocator() const
 {	return _alloc;	}
 
 T& at( const Key& key )
-{	for (iterator it = begin(); it != end(); it++)
-		if (it->_node && it->_node->_data.first == key)
-			return it->_node->_data.second;
+{
+	if (find(key) != end())
+		return find(key)->second;
 	throw std::out_of_range("key not found\n");
 	return _root->_data.second;
 }
@@ -241,9 +239,19 @@ size_type max_size() const
 {	return _alloc.max_size();	}
 
 void clear()
-{	delTree(_root);
-	_root = NULL;	}
-
+{
+	Node *x = _root;
+	if (!x)
+		return;
+	while (x != 0)
+	{
+		delTree(x->_right);
+		Node *y = x->_left;
+		delNode(x);
+		x = y;
+	}
+	_root = NULL;
+}
 
 
 
@@ -376,7 +384,7 @@ template< class InputIt >
 void insert( InputIt first, InputIt last )	// insert with a range
 {
 	for (InputIt it = first; it != last; it++)
-		insert(*it);
+		insert(ft::make_pair(it->first, it->second));
 }
 
 ft::pair<iterator,iterator> equal_range( const Key& key )
@@ -429,6 +437,7 @@ size_type count(const key_type& x) const
 iterator erase( iterator pos )
 {
 	remove(pos._node);
+	delNode(pos._node);
 	return pos;
 }
 
@@ -653,6 +662,7 @@ void insert(Node* n)	// insert the node n in the tree
 			curr = curr->_left;
 		}
 	}
+	std::cout << "Je suis ici\n";
 		ajustTree(n);
 }
 
@@ -825,7 +835,24 @@ void rotate_right(Node *x)	// when x is o the left
 	y->_right = x;
 }
 
+void	delLeft(Node *x)
+{
+	while (x->_left)
+		x = x->_left;
+	while (x->_right)
+		x = x->_right;
+	delNode(x);
+}
 
+void delRight(Node *x)
+{
+	while (x->_right)
+		x = x->_right;
+	printf("add == %p\n", x);
+	while (x->_left)
+		x = x->_left;
+	delNode(x);
+}
 
 };
 
