@@ -103,8 +103,11 @@ vector( const vector& src) : _alloc(src._alloc)
 
 vector& operator=(const vector& x)
 {
-    this->clear();
-    this->insert(this->_begin, x.begin(), x.end());
+    if (this != &x)
+    {
+        this->clear();
+        this->insert(this->_begin, x.begin(), x.end());
+    }
     return *this;
 }
 
@@ -225,24 +228,36 @@ const_reverse_iterator rend() const
 
 //  empty() -   checks whether the container is empty
 bool empty() const
-{   return (this->_end== this->_begin);    }
+{   return (this->_end == this->_begin);    }
 
 // size()    -   returns the number of elements
 size_type size() const
-{   size_type n = 0;
-    for (typename vector<const T>::iterator it = this->begin(); it != this->end(); it++)
-        n++;
-    return n;
-}
+{  return (this->_end - this->_begin); }
 
 // max_size()   -   returns the maximum possible number of elements
 size_type max_size() const
 {   return this->_alloc.max_size();   }
 
+// void reserve(size_type new_cap) 
+// {
+//     size_t len = size();
+//     if (new_cap <= capacity())
+//         return ;
+//     if (new_cap > this->max_size())
+//         throw std::length_error("exception!");
+//     pointer tmp = this->_alloc.allocate(new_cap);
+//     for (size_t i = 0; i < new_cap && i < len; i++)
+//         this->_alloc.construct(tmp + i, *(this->_begin + i));
+//     for (size_t i = 0; i < new_cap && i < len; i++)
+//         this->_alloc.destroy(this->_begin + i);
+//     this->_alloc.deallocate(this->_begin, capacity());
+//     this->_begin = tmp;
+// }
+
 void reserve(size_type n)
 {
     if (n > this->max_size())
-        {throw std::out_of_range("ft::vector");}
+        {throw std::out_of_range("max size reached");}
     if (this->capacity() >= n)
         return;
     
@@ -406,47 +421,35 @@ void pop_back()
 {   _alloc.destroy(--_end); }
 
 
-void resize (size_type n, value_type val = value_type())
-{
-	pointer	oldstart			= this->_begin;
-	size_type oldsize			= this->size();
-	size_type oldcapacity		= this->capacity();
-
-    if (n < (this->size()))
+void resize( size_type count )
+{   if (count < this->size())
     {
-        for ( pointer it = this->_begin + n ; it != this->_end ; it++ )
-            this->_alloc.destroy(it);
-        this->_end		= this->_begin + n;
-        return ;
+        while (this->size() != count)
+            _alloc.destroy(--_end);
+        _end_capacity = _begin + count;
     }
-    else if (n > (capacity()))
+    else if (count > this->size())
     {
-        size_t _capacity = capacity();
-        if (n >= SIZE_MAX)
-            throw std::length_error("vector");
-        n < SIZE_MAX / 2 ? _capacity *= 2 : _capacity = SIZE_MAX;
-        if (_capacity == 0)
-            _capacity = 1;
-        if (n > _capacity)
-            _capacity = n;
-        this->_begin		= _alloc.allocate(_capacity);
-        this->_end		= _begin + n;
-
-        size_type i = 0;
-        for ( ; i < oldsize ; i++ ) {
-            _alloc.construct(_begin + i, oldstart[i]);
-        }
-        for (size_type j = 0; j != i ; j++) {
-            _alloc.destroy(oldstart + j);
-        }
-        _alloc.deallocate(oldstart, oldcapacity);
-    }
-    this->_end = _begin + n;
-    for (pointer it = _begin + oldsize ; it != _end ; it++) {
-            _alloc.construct(it, val);
+        reserve(count);
+        while (_end != _end_capacity)
+            _alloc.construct(_end++, 0);
     }
 }
 
+void resize( size_type count, T value)
+{   if (count < this->size())
+    {
+        while (this->size() != count)
+            _alloc.destroy(--_end);
+        _end_capacity = _begin + count;
+    }
+    else if (count > this->size())
+    {
+        reserve(count);
+        while (_end != _end_capacity)
+            _alloc.construct(_end++, value);
+    }
+}
 
 // swap()   -   Exchanges the contents of the container with those of other. Does not invoke any move, copy, or swap operations on individual elements.
 void swap( vector& other )
