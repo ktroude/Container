@@ -238,22 +238,6 @@ size_type size() const
 size_type max_size() const
 {   return this->_alloc.max_size();   }
 
-// void reserve(size_type new_cap) 
-// {
-//     size_t len = size();
-//     if (new_cap <= capacity())
-//         return ;
-//     if (new_cap > this->max_size())
-//         throw std::length_error("exception!");
-//     pointer tmp = this->_alloc.allocate(new_cap);
-//     for (size_t i = 0; i < new_cap && i < len; i++)
-//         this->_alloc.construct(tmp + i, *(this->_begin + i));
-//     for (size_t i = 0; i < new_cap && i < len; i++)
-//         this->_alloc.destroy(this->_begin + i);
-//     this->_alloc.deallocate(this->_begin, capacity());
-//     this->_begin = tmp;
-// }
-
 void reserve(size_type n)
 {
     if (n > this->max_size())
@@ -356,26 +340,26 @@ void insert( iterator pos, size_type count, const T& value )   // inserts count 
 template< class InputIt >
 void insert( iterator pos, InputIt first, InputIt last, typename ft::enable_if<!ft::is_integral<InputIt>::valor>::type* = NULL ) // inserts elements from range [first, last) before pos.
 {
-            pointer p = this->_begin + (pos - this->begin());
-            allocator_type& a = this->_alloc;
-            size_type n = 0;
-            for (InputIt it = first; it != last; it++)
-                n++;
-            pointer begin = a.allocate(this->size() + n);
-            pointer end = begin; 
-            pointer tmp = this->_begin;
-            while (tmp != p && p != this->_begin)
-                a.construct(end++, *tmp++);
-            for (InputIt it = first; it != last; it++)
-                a.construct(end++, *it);
-            while (tmp != this->_end)
-                a.construct(end++, *tmp++);
-            this->clear();
-            this->_alloc.deallocate(this->_begin, this->capacity());
-            this->_begin = begin;
-            this->_end = end;
-            this->_alloc = a;
-            this->_end_capacity = this->_end;
+    pointer p = this->_begin + (pos - this->begin());
+    allocator_type& a = this->_alloc;
+    size_type n = 0;
+    for (InputIt it = first; it != last; it++)
+        n++;
+    pointer begin = a.allocate(this->size() + n);
+    pointer end = begin; 
+    pointer tmp = this->_begin;
+    while (tmp != p && p != this->_begin)
+        a.construct(end++, *tmp++);
+    for (InputIt it = first; it != last; it++)
+        a.construct(end++, *it);
+    while (tmp != this->_end)
+        a.construct(end++, *tmp++);
+    this->clear();
+    this->_alloc.deallocate(this->_begin, this->capacity());
+    this->_begin = begin;
+    this->_end = end;
+    this->_alloc = a;
+    this->_end_capacity = this->_end;
 }
 
 //erase()   -   erases elements

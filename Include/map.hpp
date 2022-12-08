@@ -1,8 +1,8 @@
 #include <functional>
+#include <iostream>
 #include "./iterator/bidirectional_iterator.hpp"
 #include "./iterator/pair.hpp"
 #include "./iterator/cmp.hpp"
-#include <iostream>
 #include "./iterator/iterator.hpp"
 
 namespace ft
@@ -292,28 +292,6 @@ void swap( map& other )
 
 }
 
-
-
-// iterator find ( const Key& key )
-// {
-// 	iterator it = begin();
-// 	for (; it != end(); ++it)
-// 		if (it._node->_data.first == key)
-// 			return it;
-// 	return end();
-// }
-
-// const_iterator find( const Key& key ) const
-// {	
-// 	const_iterator it = begin();
-// 	for (; it != end(); ++it)
-// 		if (it._node->_data.first == key)
-// 		{
-// 			return const_iterator(reinterpret_cast<const_Node *>(it._node));
-
-// 		}
-// 	return end();
-// }
 
 ft::pair<iterator, bool> insert( const value_type& value )
 {
@@ -774,65 +752,48 @@ void ajustTree(Node *n)				// perform operations to maintain the properties of t
 }
 
 
-// void rotate_left(Node *x)	// when x is on the right
-// {
-//     Node *y = x->_right;
-//     x->_right = y->_left;
-//     if (y->_left != NULL)
-//     	y->_left->_prev = x;
-//     y->_prev = x->_prev;
-//     if (x->_prev == NULL)
-//     	_root = y;
-//     else if (x == x->_prev->_left)
-//     	x->_prev->_left = y;
-//     else
-//     	x->_prev->_right = y;
-//     y->_left = x;
-//     x->_prev = y;
-// }
-
 void rotate_left(Node *n)
-		{
-			if (!n || !n->_right)
-				return;
-
-			Node *rc = n->_right ;
-			n->_right = rc->_left;
-
-			if (n->_right)
-				n->_right->_prev = n;
-			
-			if (!n->_prev)
-				_root = rc;
-			else if (n == n->_prev->_left)
-				n->_prev->_left = rc;
-			else
-				n->_prev->_right = rc;	
-
-			rc->_prev = n->_prev ;
-			n->_prev = rc;
-			rc->_left = n;
-		}
-
-
-void rotate_right(Node *x)	// when x is o the left
 {
-	if (!x || !x->_left)
+	if (!n || !n->_right)
 		return;
-	Node *y = x->_left ;
-	x->_left = y->_right;
-	if (x->_left)
-		x->_left->_prev = x;
+
+	Node *rc = n->_right ;
+	n->_right = rc->_left;
+
+	if (n->_right)
+		n->_right->_prev = n;
 	
-	if (!x->_prev)
-		_root = y;
-	else if (x == x->_prev->_left)
-		x->_prev->_left = y;
+	if (!n->_prev)
+		_root = rc;
+	else if (n == n->_prev->_left)
+		n->_prev->_left = rc;
 	else
-		x->_prev->_right = y;		
-	y->_prev = x->_prev ;
-	x->_prev = y;
-	y->_right = x;
+		n->_prev->_right = rc;	
+
+	rc->_prev = n->_prev ;
+	n->_prev = rc;
+	rc->_left = n;
+}
+
+
+void rotate_right(Node *n)	// when n is o the left
+{
+	if (!n || !n->_left)
+		return;
+	Node *y = n->_left ;
+	n->_left = y->_right;
+	if (n->_left)
+		n->_left->_prev = n;
+	
+	if (!n->_prev)
+		_root = y;
+	else if (n == n->_prev->_left)
+		n->_prev->_left = y;
+	else
+		n->_prev->_right = y;		
+	y->_prev = n->_prev ;
+	n->_prev = y;
+	y->_right = n;
 }
 
 void	delLeft(Node *x)
