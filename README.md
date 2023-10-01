@@ -1,3 +1,10 @@
-# Container
+# 42-ft_containers : 
+Some containers of STL in C++98 : vector,map and stack.
 
-Recoding the containers of C++
+# Notions :
+
+- Templates c++ 
+- Iterrators 
+- Allocators 
+- RedBlack Trees 
+- Complexity of algorithms
